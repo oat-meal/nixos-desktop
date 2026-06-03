@@ -15,6 +15,7 @@
     ../common/optional/hardware/amd.nix
 
     # Networking
+    ../common/optional/networking/sops.nix
     ../common/optional/networking/syncthing.nix
     ../common/optional/networking/wifi.nix
     ../common/optional/networking/wireguard.nix

@@ -28,12 +28,18 @@
       url = "github:0xc000022070/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # sops-nix — runtime secrets management
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   ################################
   ## FLAKE OUTPUTS
   ################################
-  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, niri-flake, zen-browser, ... }:
+  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, niri-flake, zen-browser, sops-nix, ... }:
     let
       system = "x86_64-linux";
 
@@ -60,6 +66,9 @@
           modules = [
             # Host-specific configuration
             hostPath
+
+            # Runtime secrets
+            sops-nix.nixosModules.sops
 
             # Overlays
             { nixpkgs.overlays = [

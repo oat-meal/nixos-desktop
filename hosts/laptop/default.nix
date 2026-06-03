@@ -31,6 +31,7 @@
     # Networking
     ../common/optional/networking/firewall.nix
     ../common/optional/networking/nordvpn.nix
+    ../common/optional/networking/sops.nix
     ../common/optional/networking/syncthing.nix
     ../common/optional/networking/wifi.nix
     ../common/optional/networking/wireguard.nix

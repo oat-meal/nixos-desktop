@@ -1,0 +1,12 @@
+keys:
+  - &workstation age1zgqpnrnulqjlwjwxc8vnfpcfdjg9yl68ux8hd037pxkmaldmn53qy2mk7m
+  - &server age1x7lrwe234c65g0ty2u6hf7zq5g5as09r8kmhufm0vztzkmu9wgps9kyhpw
+  - &laptop age1azc4dw68a8luahn6rdknsw625spvjglfm0rj4tpy24ppe8kcf5eq02e4t4
+
+creation_rules:
+  - path_regex: secrets/secrets\.yaml$
+    key_groups:
+      - age:
+          - *workstation
+          - *server
+          - *laptop

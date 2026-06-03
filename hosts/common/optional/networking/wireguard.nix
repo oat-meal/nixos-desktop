@@ -11,6 +11,7 @@
 let
   secrets = import ../../../../secrets/network.nix;
   hostname = config.networking.hostName;
+  sopsEnabled = config.sops.secrets ? "wireguard/${hostname}";
 
   publicKeys = secrets.wireguard.publicKeys;
   meshIPs = secrets.wireguard.meshIPs;
@@ -36,7 +37,10 @@ in
   networking.wireguard.interfaces.wg0 = {
     ips = [ "${myIP}/24" ];
     listenPort = port;
-    privateKeyFile = "/etc/wireguard/private.key";
+    privateKeyFile =
+      if sopsEnabled
+      then config.sops.secrets."wireguard/${hostname}".path
+      else "/etc/wireguard/private.key";
     inherit peers;
   };
 
