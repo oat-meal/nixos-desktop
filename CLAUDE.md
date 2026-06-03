@@ -2,7 +2,7 @@
 
 ## Host Detection
 
-**On every new conversation**, run `hostname` to determine which host you're on, then load the appropriate host documentation:
+Run `hostname` at conversation start to determine context.
 
 | Hostname | Host Doc | Purpose |
 |----------|----------|---------|
@@ -10,14 +10,13 @@
 | `laptop-nixos` | `docs/audit/laptop.md` | Framework 13 laptop |
 | `server-nixos` | `docs/audit/server.md` | Home server |
 
-Read the host doc for hardware specs, known states, and audit history before making changes.
-
 ## Repository
 
 - **Location**: `/etc/nixos/`
-- **Remote**: `https://github.com/oat-meal/nixos-lab`
+- **Remote**: `git@github.com:oat-meal/nixos-lab.git` (SSH)
 - **Type**: Nix Flakes with Home Manager
 - **Channel**: nixpkgs-25.11 stable, selective unstable overlay (`pkgs.unstable.<pkg>`)
+- **Secrets**: `secrets/network.nix` encrypted via git-crypt (see Secrets section)
 
 ## Structure
 
@@ -32,72 +31,104 @@ hosts/
 
 home/
 ├── oat/               # User-specific Home Manager config
-└── common/optional/   # Shared HM modules (desktop/, user-packages.nix, theme.nix)
+└── common/optional/   # Shared HM modules (desktop/, security/, user-packages.nix, theme.nix)
 
-docs/
-├── audit/             # Per-host audit framework
-│   ├── README.md      # Audit checklist (9-step process)
-│   ├── known-states.md # Expected anomalies (do not flag)
-│   ├── workstation.md # Workstation hardware, audit history
-│   └── laptop.md      # Laptop hardware, audit history
-├── NORDVPN-SETUP.md   # wgnord VPN guide
-└── NIRI-MIGRATION.md  # Historical (completed March 2026)
+secrets/
+├── network.nix        # IPs, keys, device IDs (git-crypt encrypted)
+└── network.nix.example # Template with placeholders
+
+installer/             # Custom installer ISO
+docs/audit/            # Per-host audit docs
 ```
 
-## Common Commands
+## Deployment
+
+### Local rebuild
 
 ```bash
-# Rebuild (replace <hostname> with output of `hostname`)
 sudo nixos-rebuild switch --flake /etc/nixos#$(hostname)
-
-# Dry run
-sudo nixos-rebuild dry-activate --flake /etc/nixos#$(hostname)
-
-# Update inputs
-sudo nix flake update /etc/nixos
-
-# Garbage collect
-sudo nix-collect-garbage --delete-older-than 30d
 ```
 
-## Multi-Host Workflow
-
-This repo is shared across machines. Before editing:
+### Deploy script
 
 ```bash
-cd /etc/nixos && sudo git pull --rebase
+# Local only (default)
+bash /etc/nixos/deploy.sh
+
+# Specific remote host
+bash /etc/nixos/deploy.sh server-nixos
+
+# All hosts (local + push + rebuild remotes)
+bash /etc/nixos/deploy.sh all
 ```
 
-After committing:
+### Manual remote rebuild
 
 ```bash
-cd /etc/nixos && sudo git push
+ssh server-nixos "cd /etc/nixos && sudo git pull --rebase && sudo nixos-rebuild switch --flake /etc/nixos#server-nixos"
 ```
 
-On the other machine, pull before rebuilding.
+## Host Access Map
 
-## Audit Process
+```
+workstation-nixos ──SSH/wg0──> server-nixos  (10.100.0.2)
+workstation-nixos ──SSH/wg0──> laptop-nixos  (10.100.0.3)
+laptop-nixos      ──SSH/wg0──> server-nixos  (10.100.0.2)
+```
 
-When performing a system audit, follow `docs/audit/README.md`. Check `docs/audit/known-states.md` before flagging issues — many apparent anomalies are documented and expected.
+All SSH access is restricted to WireGuard mesh (`wg0`, 10.100.0.0/24). Syncthing syncs over LAN.
 
-Record audit results in the host's doc file (`docs/audit/<host>.md`).
+## Secrets (git-crypt)
+
+`secrets/network.nix` contains IPs, WireGuard public keys, Syncthing device IDs, and SSH public keys. It is encrypted in git via git-crypt and decrypted in the working tree.
+
+### Committing changes to encrypted files
+
+git-crypt must be in PATH when staging:
+
+```bash
+nix-shell -p git-crypt --run 'git add -A && git commit -m "message"'
+```
+
+### Unlocking after a fresh clone
+
+```bash
+git-crypt unlock ~/.config/git-crypt/nixos-lab.key
+```
+
+The symmetric key is synced to all hosts via Syncthing (`~/.config/git-crypt/`).
+
+## Troubleshooting
+
+### Build fails with "access to absolute path forbidden"
+Flake pure evaluation blocks absolute paths. All imports must be relative. Secrets must be tracked in git (git-crypt handles encryption).
+
+### WireGuard handshake not completing
+Check `rp_filter` — Linux uses `max(all, interface)`. Both `net.ipv4.conf.all.rp_filter` and `net.ipv4.conf.wg0.rp_filter` must be `2` (loose). The wireguard.nix module handles this with `lib.mkForce`.
+
+### Service not restarting after rebuild
+Some services (WireGuard, Syncthing) need manual restart: `sudo systemctl restart wireguard-wg0.service`
+
+### Firewall interface patterns
+NixOS firewall defaults to iptables backend (unless `networking.nftables.enable = true`). In iptables, `+` is the wildcard suffix; in nftables, `*` is. The NixOS `interfaces` option passes the key directly to the backend. WireGuard interface `wg0` must be listed explicitly if SSH should be reachable over the mesh.
 
 ## Key Conventions
 
-- **Module priority**: Use `lib.mkDefault` for common defaults, `lib.mkForce` for host overrides
-- **Unstable packages**: Access via `pkgs.unstable.<package>` (overlay defined in flake.nix)
-- **Desktop**: Niri scrollable tiling Wayland compositor on all desktop hosts
+- **Module priority**: `lib.mkDefault` for common defaults, `lib.mkForce` for host overrides
+- **Unstable packages**: `pkgs.unstable.<package>` (overlay in flake.nix)
+- **Desktop**: Niri scrollable tiling Wayland compositor
 - **Theme**: Catppuccin Macchiato system-wide
-- **Browser**: Zen Browser (sole browser)
+- **Browser**: Zen Browser
 - **Shell**: Zsh with Oh-My-Zsh
 - **User**: Single user `oat` with Home Manager
+- **Passwordless sudo**: All hosts have scoped NOPASSWD for nixos-rebuild, nix*, systemctl, git, zfs, zpool
 
 ## Documentation Style
 
-- Use factual, specification-focused language
+- Factual, specification-focused language
 - Replace "optimized/tuned/enhanced" with "configured/specified/set"
 - State technical specifications, not performance promises
-- Repo docs are the source of truth; Obsidian links back to them
+- Always provide single-line commands for copy/paste (no unnecessary line breaks)
 
 ## Symlink Setup
 

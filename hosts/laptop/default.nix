@@ -86,11 +86,22 @@
     };
   };
 
-  # Only allow SSH on local network interfaces
+  # Only allow SSH over WireGuard mesh
   networking.firewall.allowedTCPPorts = lib.mkForce [];
-  networking.firewall.interfaces."wlp*".allowedTCPPorts = [ 22 ];
-  networking.firewall.interfaces."enp*".allowedTCPPorts = [ 22 ];
   networking.firewall.interfaces."wg0".allowedTCPPorts = [ 22 ];
+
+  # Scoped passwordless sudo for management commands
+  security.sudo.extraRules = [{
+    users = [ "oat" ];
+    commands = [
+      { command = "/run/current-system/sw/bin/nixos-rebuild"; options = [ "NOPASSWD" ]; }
+      { command = "/run/current-system/sw/bin/nix*"; options = [ "NOPASSWD" ]; }
+      { command = "/run/current-system/sw/bin/systemctl"; options = [ "NOPASSWD" ]; }
+      { command = "/run/current-system/sw/bin/git"; options = [ "NOPASSWD" ]; }
+      { command = "/run/current-system/sw/bin/zfs"; options = [ "NOPASSWD" ]; }
+      { command = "/run/current-system/sw/bin/zpool"; options = [ "NOPASSWD" ]; }
+    ];
+  }];
 
   services.fail2ban = {
     enable = true;

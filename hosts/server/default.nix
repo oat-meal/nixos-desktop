@@ -180,7 +180,6 @@
   networking.firewall = {
     enable = true;
     allowedTCPPorts = [
-      22     # SSH
       53     # AdGuard DNS
       111    # NFS portmapper
       2049   # NFS
@@ -194,7 +193,9 @@
       111    # NFS portmapper
       2049   # NFS
     ];
-    allowedUDPPortRanges = [
+    # SSH and Mosh only over WireGuard mesh
+    interfaces."wg0".allowedTCPPorts = [ 22 ];
+    interfaces."wg0".allowedUDPPortRanges = [
       { from = 60000; to = 60010; }  # Mosh
     ];
   };
