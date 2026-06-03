@@ -203,7 +203,7 @@
   ## NFS mount — server storage
   ################################
   fileSystems."/mnt/server" = {
-    device = "server-nixos:/storage";
+    device = "10.100.0.2:/storage";
     fsType = "nfs";
     options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
   };

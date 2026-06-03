@@ -151,7 +151,7 @@
     exports = let
       secrets = import ../../secrets/network.nix;
     in ''
-      /storage  ${secrets.lanSubnet}(rw,sync,no_subtree_check,root_squash)
+      /storage  ${secrets.wireguard.meshSubnet}(rw,sync,no_subtree_check,root_squash)
     '';
   };
 
@@ -185,8 +185,6 @@
     enable = true;
     allowedTCPPorts = [
       53     # AdGuard DNS
-      111    # NFS portmapper
-      2049   # NFS
       3000   # AdGuard Home web UI
       8096   # Jellyfin
       8123   # Home Assistant
@@ -194,11 +192,10 @@
     ];
     allowedUDPPorts = [
       53     # AdGuard DNS
-      111    # NFS portmapper
-      2049   # NFS
     ];
-    # SSH and Mosh only over WireGuard mesh
-    interfaces."wg0".allowedTCPPorts = [ 22 ];
+    # SSH, Mosh, and NFS only over WireGuard mesh
+    interfaces."wg0".allowedTCPPorts = [ 22 111 2049 ];
+    interfaces."wg0".allowedUDPPorts = [ 111 2049 ];
     interfaces."wg0".allowedUDPPortRanges = [
       { from = 60000; to = 60010; }  # Mosh
     ];
