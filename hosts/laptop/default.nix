@@ -90,6 +90,7 @@
   networking.firewall.allowedTCPPorts = lib.mkForce [];
   networking.firewall.interfaces."wlp*".allowedTCPPorts = [ 22 ];
   networking.firewall.interfaces."enp*".allowedTCPPorts = [ 22 ];
+  networking.firewall.interfaces."wg0".allowedTCPPorts = [ 22 ];
 
   services.fail2ban = {
     enable = true;
