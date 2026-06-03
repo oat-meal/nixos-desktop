@@ -14,7 +14,7 @@
 - **Role**: Headless home server
 - **Remote access**: SSH (key-only, no root), Mosh
 - **Sudo**: Scoped passwordless (nixos-rebuild, nix, systemctl, git, zfs, zpool, podman, udevadm)
-- **Services**: Ollama (ROCm GPU), Jellyfin, AdGuard Home, Home Assistant (Podman, isolated network), NFS server
+- **Services**: Ollama (ROCm GPU), Jellyfin, AdGuard Home, NFS server
 - **NFS**: Exports `/storage` to LAN subnet (root_squash)
 - **ZFS ARC**: 32GB
 - **ZFS maintenance**: Monthly scrub, auto-snapshots (frequent/hourly/daily/weekly/monthly)
@@ -28,7 +28,6 @@
 | AdGuard DNS | 53 | TCP/UDP |
 | AdGuard Home Web UI | 3000 | TCP |
 | Jellyfin | 8096 | TCP |
-| Home Assistant | 8123 | TCP |
 | Ollama API | 11434 | TCP |
 | NFS | 111, 2049 | TCP/UDP |
 | Mosh | 60000-60010 | UDP |

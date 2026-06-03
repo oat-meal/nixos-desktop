@@ -1,6 +1,6 @@
 # Framework Server — headless home server
 # AMD Ryzen AI Max+ 395, 128GB unified RAM, 2x 1TB NVMe (ZFS mirror)
-# Services: Ollama, Jellyfin, AdGuard Home, Home Assistant, NFS/Samba
+# Services: Ollama, Jellyfin, AdGuard Home, NFS/Samba
 
 { config, pkgs, lib, ... }:
 
@@ -135,13 +135,6 @@
   };
 
   virtualisation.oci-containers.backend = "podman";
-  virtualisation.oci-containers.containers = {
-    home-assistant = {
-      image = "ghcr.io/home-assistant/home-assistant:stable";
-      volumes = [ "/var/lib/hass:/config" ];
-      ports = [ "8123:8123" ];
-    };
-  };
 
   ################################
   ## NFS + Samba
@@ -187,7 +180,6 @@
       53     # AdGuard DNS
       3000   # AdGuard Home web UI
       8096   # Jellyfin
-      8123   # Home Assistant
       11434  # Ollama API
     ];
     allowedUDPPorts = [
