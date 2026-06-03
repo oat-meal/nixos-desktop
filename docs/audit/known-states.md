@@ -1,0 +1,73 @@
+# Known States (Do Not Flag)
+
+Items that appear anomalous in system checks but are expected behavior. Check this list before filing audit findings.
+
+## All Hosts
+
+### Mako — systemd unit inactive
+- **Symptom**: `systemctl --user status mako.service` shows `inactive (dead)`
+- **Reason**: Launched by niri `spawn-at-startup`, not systemd. Verify: `pgrep -a mako`
+
+### en_DK.UTF-8 Locale with America/Denver Timezone
+- **Symptom**: Locale region (DK) does not match timezone (US Mountain)
+- **Reason**: `en_DK` gives English with ISO 8601 dates (YYYY-MM-DD) and metric units. Intentional.
+
+### dbus "Unknown username pulse"
+- **Symptom**: `Unknown username "pulse" in message bus configuration file`
+- **Reason**: PipeWire replaces PulseAudio; stale dbus config reference. Cosmetic.
+
+### gnome-keyring PAM Warning
+- **Symptom**: `gkr-pam: unable to locate daemon control file` at login
+- **Reason**: gnome-keyring referenced in PAM but fully managed elsewhere. No functional impact.
+
+### xdg-desktop-portal pidns Warnings
+- **Symptom**: `Could not get pidns for pid NNNN`
+- **Reason**: xdg-desktop-portal interacting with Steam pressure-vessel containers. Cosmetic.
+
+### nm-applet GTK Assertion
+- **Symptom**: `gtk_widget_get_scale_factor: assertion 'GTK_IS_WIDGET (widget)' failed`
+- **Reason**: GTK3 bug under Wayland. Does not affect network functionality.
+
+### PipeWire ALSA Device Drop
+- **Symptom**: `spa.alsa: front:4p: snd_pcm_drop: No such device`
+- **Reason**: Transient on Bluetooth/HDMI disconnect. Non-impactful.
+
+### Bluetooth Rejected Unbonded Device
+- **Symptom**: `Rejected connection from !bonded device`
+- **Reason**: Correct security behavior.
+
+### Steam Split-Lock Warnings
+- **Symptom**: `x86/split lock detection: [...] steam` in journal
+- **Reason**: Valve bug — unaligned atomic operations in 32-bit client on Zen 4/5.
+- **Fix**: LD_PRELOAD shim (`steam-split-lock-fix.nix`) sets `prctl(PR_SET_BUS_LOCK_DETECT, WARN)` per-process. System-wide detection remains enforced.
+- **Note (2026-05-04)**: Steam observed relaunching with dark window during gameplay. May be related to split lock traps or a separate XWayland/CEF issue. Reopen investigation if it persists after fix.
+- **Cleanup (2026-05-04)**: Removed invalid env vars `STEAM_DISABLE_BROWSER_RESTART` and `STEAM_ENABLE_WAYLAND_BROWSER` (non-existent flags). Removed `STEAM_FORCE_DESKTOPUI_SCALING=1` (default value, no-op).
+
+### Fightcade Coredump (fc2-electron)
+- **Symptom**: fc2-electron SIGSEGV in Flatpak sandbox
+- **Reason**: Upstream Fightcade Flatpak bug. NixOS config is correct.
+
+## workstation-nixos Only
+
+### amdgpu MES Errors (RDNA 4)
+- **Symptom**: `amdgpu: MES(1) failed to respond to msg=INVALIDATE_TLBS`
+- **Reason**: Known Navi 48 (RX 9070 XT) firmware issue. AMD actively fixing.
+- **Action**: Monitor frequency; update kernel/mesa when available. < 5/week is acceptable.
+
+### DisplayLink xserver.videoDrivers on Wayland
+- **Symptom**: `services.xserver.videoDrivers` set despite Wayland-only session
+- **Reason**: DisplayLink DRM/KMS requires modesetting DDX. Needed even on Wayland.
+
+### Suspend/Hibernate Disabled
+- **Symptom**: System never suspends
+- **Reason**: AMD Ryzen 9950X (Zen 5) has Linux suspend/wake hardware issues. Always-on is intentional.
+
+### Waybar Tray "No icon name or pixmap given"
+- **Symptom**: `Item '': No icon name or pixmap given.` errors in waybar log
+- **Reason**: Electron/Chromium apps (Discord, etc.) use `chrome_status_icon` tray items with empty `IconName` fields. Waybar falls back to pixmap data and renders correctly. Upstream Chromium limitation.
+
+## laptop-nixos Only
+
+### amdgpu Adaptive Backlight Disabled
+- **Symptom**: `amdgpu.abmlevel=0` kernel parameter
+- **Reason**: Prevents GPU idle lockups on Framework 13. Intentional.

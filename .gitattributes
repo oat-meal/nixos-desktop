@@ -1,0 +1,1 @@
+secrets/network.nix filter=git-crypt diff=git-crypt
