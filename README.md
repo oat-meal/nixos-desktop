@@ -91,7 +91,7 @@ nixos-lab/
 │   │       ├── desktop/             # Niri, audio, fonts, apps
 │   │       ├── gaming/              # Steam, GameMode, Vulkan
 │   │       ├── hardware/            # AMD, Bluetooth, Framework
-│   │       ├── networking/          # Firewall, NordVPN, WiFi, WireGuard, Syncthing
+│   │       ├── networking/          # Firewall, NordVPN, WiFi, WireGuard, Syncthing, sops
 │   │       ├── power/               # Performance, portable, hibernate
 │   │       └── security/            # LUKS/FIDO2, YubiKey, PAM U2F
 │   │
@@ -186,15 +186,23 @@ sudo nix-collect-garbage --delete-older-than 30d
 - **Filesystem-agnostic modules**: device paths and UUIDs live exclusively in `hardware-configuration.nix` (generated per-host by the installer)
 - **Niri compositor**: scrollable tiling Wayland on all desktop hosts
 - **Catppuccin Macchiato**: system-wide theming via Home Manager
+- **WireGuard-only SSH**: `openFirewall = false` on SSH/Mosh services, port 22 opened only on `wg0` interface — no LAN SSH exposure
+- **Two-layer secrets**: git-crypt for build-time values (IPs, public keys), sops-nix for runtime secrets (private keys) — different trust boundaries, appropriate tooling for each
 
 ## Networking
 
 IPs and keys are in `secrets/network.nix`. The network topology:
 
-- **WireGuard mesh** (`wg0`): encrypted full-mesh between all hosts (10.100.0.0/24). All SSH access is restricted to this mesh.
+- **WireGuard mesh** (`wg0`): encrypted full-mesh between all hosts. All SSH and NFS access is restricted to this mesh.
+
+| Host | WireGuard IP |
+|------|-------------|
+| `workstation-nixos` | 10.100.0.1 |
+| `server-nixos` | 10.100.0.2 |
+| `laptop-nixos` | 10.100.0.3 |
 - **NordVPN** (`wgnord`): outbound VPN via wgnord on workstation-nixos and laptop-nixos
 - **Syncthing**: file sync across all hosts (LAN-only, no relays). Syncs `~/.claude/` and `~/.config/git-crypt/`
-- **NFS**: server exports `/storage` to LAN subnet
+- **NFS**: server exports `/storage` to WireGuard subnet (encrypted in transit)
 
 ## Security
 
