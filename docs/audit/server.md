@@ -15,7 +15,7 @@
 - **Remote access**: SSH (key-only, no root), Mosh
 - **Sudo**: Scoped passwordless (nixos-rebuild, nix, systemctl, git, zfs, zpool, podman, udevadm)
 - **Services**: Ollama (ROCm GPU), Jellyfin, AdGuard Home, Home Assistant (Podman, isolated network), NFS server
-- **NFS**: Exports `/storage` to `<lan-subnet>` (root_squash)
+- **NFS**: Exports `/storage` to LAN subnet (root_squash)
 - **ZFS ARC**: 32GB
 - **ZFS maintenance**: Monthly scrub, auto-snapshots (frequent/hourly/daily/weekly/monthly)
 - **Security**: Fail2ban, SSH hardened (MaxAuthTries=3, no X11/TCP forwarding), kernel hardening, audit logging, SMART monitoring
