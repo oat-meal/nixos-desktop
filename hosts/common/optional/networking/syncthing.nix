@@ -42,6 +42,11 @@ in
           };
           ignorePerms = false;
         };
+        "git-crypt-keys" = {
+          path = "/home/${secrets.user}/.config/git-crypt";
+          devices = lib.attrNames otherHosts;
+          ignorePerms = false;
+        };
       };
 
       options = {
