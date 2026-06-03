@@ -112,7 +112,7 @@
 
   users.users.oat.openssh.authorizedKeys.keys = let
     secrets = import ../../secrets/network.nix;
-  in [ secrets.sshKeys.workstation-nixos ];
+  in lib.attrValues secrets.sshKeys;
 
   ################################
   ## ZFS maintenance

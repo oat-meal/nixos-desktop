@@ -69,6 +69,36 @@
   ];
 
   ################################
+  ## SSH — WireGuard mesh only
+  ################################
+  services.openssh = {
+    enable = true;
+    openFirewall = false;
+    settings = {
+      PermitRootLogin = "no";
+      PasswordAuthentication = false;
+      X11Forwarding = false;
+      MaxAuthTries = 3;
+      ClientAliveInterval = 300;
+      ClientAliveCountMax = 2;
+      AllowTcpForwarding = false;
+    };
+  };
+
+  networking.firewall.interfaces."wg0".allowedTCPPorts = [ 22 ];
+
+  users.users.oat.openssh.authorizedKeys.keys = let
+    secrets = import ../../secrets/network.nix;
+  in lib.attrValues secrets.sshKeys;
+
+  services.fail2ban = {
+    enable = true;
+    maxretry = 5;
+    bantime = "1h";
+    bantime-increment.enable = true;
+  };
+
+  ################################
   ## GameMode override (16-core CPU)
   ################################
   # Ryzen 9950X: reserve 4 cores for system, pin games to 12
