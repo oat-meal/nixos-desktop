@@ -34,8 +34,10 @@ home/
 └── common/optional/   # Shared HM modules (desktop/, security/, user-packages.nix, theme.nix)
 
 secrets/
-├── network.nix        # IPs, keys, device IDs (git-crypt encrypted)
-└── network.nix.example # Template with placeholders
+├── network.nix        # IPs, public keys, device IDs (git-crypt, build-time)
+├── network.nix.example # Template with placeholders
+├── secrets.yaml       # WireGuard private keys (sops-nix, runtime)
+└── init-sops.sh       # Helper to collect and encrypt WireGuard keys
 
 installer/             # Custom installer ISO
 docs/audit/            # Per-host audit docs
@@ -78,25 +80,32 @@ laptop-nixos      ──SSH/wg0──> server-nixos  (10.100.0.2)
 
 All SSH access is restricted to WireGuard mesh (`wg0`, 10.100.0.0/24). Syncthing syncs over LAN.
 
-## Secrets (git-crypt)
+## Secrets
 
-`secrets/network.nix` contains IPs, WireGuard public keys, Syncthing device IDs, and SSH public keys. It is encrypted in git via git-crypt and decrypted in the working tree.
+Two layers:
 
-### Committing changes to encrypted files
+- **git-crypt** (build-time): `secrets/network.nix` — IPs, public keys, device IDs. Plaintext in working tree, encrypted in git. Imported by Nix modules at evaluation.
+- **sops-nix** (runtime): `secrets/secrets.yaml` — WireGuard private keys. Encrypted via age, decrypted to `/run/secrets/` at system activation. Age keys derived from SSH host keys (`/etc/ssh/ssh_host_ed25519_key`).
 
-git-crypt must be in PATH when staging:
+### Committing changes to git-crypt files
 
 ```bash
 nix-shell -p git-crypt --run 'git add -A && git commit -m "message"'
 ```
 
-### Unlocking after a fresh clone
+### Editing sops secrets
+
+```bash
+nix-shell -p sops age ssh-to-age --run 'sops secrets/secrets.yaml'
+```
+
+### Unlocking git-crypt after a fresh clone
 
 ```bash
 git-crypt unlock ~/.config/git-crypt/nixos-lab.key
 ```
 
-The symmetric key is synced to all hosts via Syncthing (`~/.config/git-crypt/`).
+The git-crypt key is synced to all hosts via Syncthing (`~/.config/git-crypt/`). sops-nix uses SSH host keys automatically.
 
 ## Troubleshooting
 

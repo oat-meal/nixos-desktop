@@ -64,9 +64,12 @@ nixos-lab/
 ├── flake.lock                       # Pinned inputs
 ├── deploy.sh                        # Multi-host deploy script
 │
+├── .sops.yaml                       # sops-nix age key config
 ├── secrets/
-│   ├── network.nix                  # IPs, keys, device IDs (git-crypt encrypted)
-│   └── network.nix.example          # Template with placeholders
+│   ├── network.nix                  # IPs, public keys, device IDs (git-crypt encrypted)
+│   ├── network.nix.example          # Template with placeholders
+│   ├── secrets.yaml                 # Runtime secrets: WireGuard private keys (sops encrypted)
+│   └── init-sops.sh                 # Helper to collect and encrypt WireGuard keys
 │
 ├── installer/                       # Custom installer ISO
 │   ├── default.nix                  # ISO system configuration
@@ -111,27 +114,38 @@ nixos-lab/
 
 ## Secrets
 
-Network configuration (IPs, public keys, device IDs) is stored in `secrets/network.nix`, encrypted in git via **git-crypt**. A template with placeholder values is at `secrets/network.nix.example`.
+Two layers of secrets management:
+
+- **git-crypt** (build-time): `secrets/network.nix` — IPs, public keys, Syncthing device IDs. Encrypted in git, plaintext in the working tree. Used by Nix at evaluation time.
+- **sops-nix** (runtime): `secrets/secrets.yaml` — WireGuard private keys. Encrypted in git via age, decrypted to `/run/secrets/` at system activation. Age keys are derived from each host's SSH host key.
 
 ### For repo contributors (using your own lab)
 
-No git-crypt key needed. Copy the template and fill in your own values:
+No git-crypt or sops key needed. Copy the templates and fill in your own values:
 
 ```bash
 cp secrets/network.nix.example secrets/network.nix
-# Edit secrets/network.nix with your IPs, keys, and device IDs
+# Edit secrets/network.nix with your IPs, public keys, and device IDs
 ```
+
+For sops secrets, generate your own `.sops.yaml` with your hosts' age keys:
+
+```bash
+nix-shell -p ssh-to-age --run 'cat /etc/ssh/ssh_host_ed25519_key.pub | ssh-to-age'
+```
+
+Then run `bash secrets/init-sops.sh` to collect and encrypt WireGuard private keys.
 
 ### For existing lab hosts
 
-The git-crypt symmetric key is synced via Syncthing to `~/.config/git-crypt/nixos-lab.key` on all hosts.
+The git-crypt symmetric key is synced via Syncthing to `~/.config/git-crypt/nixos-lab.key` on all hosts. sops-nix uses SSH host keys automatically — no extra key distribution needed.
 
 ```bash
-# Unlock the repo after a fresh clone
+# Unlock git-crypt after a fresh clone
 git-crypt unlock ~/.config/git-crypt/nixos-lab.key
 
-# Export the key for a new host (from an unlocked host)
-git-crypt export-key /tmp/git-crypt-key
+# Edit sops secrets
+nix-shell -p sops age ssh-to-age --run 'sops secrets/secrets.yaml'
 ```
 
 ### Committing changes to encrypted files
@@ -189,7 +203,7 @@ IPs and keys are in `secrets/network.nix`. The network topology:
 - PAM U2F for sudo/login
 - SSH restricted to WireGuard mesh (no LAN SSH), key-only auth, fail2ban on all hosts
 - Firewall enabled on all hosts; `openFirewall = false` on SSH/Mosh services
-- git-crypt for build-time secrets (network config)
+- git-crypt for build-time secrets (network config), sops-nix for runtime secrets (private keys)
 - Kernel hardening with loose rp_filter for WireGuard compatibility
 - NordVPN via WireGuard (wgnord)
 
