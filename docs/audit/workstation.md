@@ -14,6 +14,9 @@
 - **Suspend**: Disabled (Zen 5 hardware issue)
 - **Power**: Always-on, performance governor, all power saving disabled
 - **GameMode**: 12-core pinning (4 reserved for system)
+- **SSH**: wg0-only, key-only, fail2ban (`openFirewall = false`)
+- **Sudo**: Scoped passwordless (nixos-rebuild, nix, systemctl, git, zfs, zpool)
+- **NFS mount**: `/mnt/server` via WireGuard (10.100.0.2)
 - **DisplayLink**: EVDI module for USB displays
 - **nix-ld**: Enabled for Fightcade, AppImages
 - **Flatpak**: Enabled (Fightcade)
@@ -125,3 +128,12 @@ WiFi shutdown cleanup service exists for ath12k driver issues (`systemd.services
 - NFS automount to server at /mnt/server
 - Steam library added on /storage/steam (ZFS dataset)
 - Steam dedicated server firewall ports disabled
+
+### 2026-06-03 — Network Hardening
+
+- SSH server added (wg0-only, `openFirewall = false`, fail2ban)
+- All host keys authorized (full mesh)
+- Scoped passwordless sudo added
+- NFS mount changed from LAN hostname to WireGuard IP (10.100.0.2)
+- sops-nix added for WireGuard private key management
+- Syncthing active (claude-context, git-crypt-keys)

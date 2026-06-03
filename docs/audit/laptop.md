@@ -17,6 +17,8 @@
 - **Backlight**: `amdgpu.abmlevel=0` to prevent GPU idle lockups
 - **Fingerprint**: Reader support enabled
 - **Framework tools**: ectool
+- **SSH**: wg0-only, key-only, fail2ban (`openFirewall = false`)
+- **Sudo**: Scoped passwordless (nixos-rebuild, nix, systemctl, git, zfs, zpool)
 
 ## Differences from Workstation
 
@@ -32,6 +34,12 @@
 | DisplayLink | Yes | No |
 | nix-ld | Yes | No |
 | Flatpak | Yes | No |
+
+## Authorized SSH Keys
+
+- `oat@workstation-nixos`
+- `oat@laptop-nixos`
+- `oat@server-nixos`
 
 ---
 
@@ -53,6 +61,13 @@ No full on-host audit performed yet. Schedule when next on laptop.
 - Reimaged with ZFS on LUKS2 (migrated from Btrfs)
 - Kernel hardening module added (sysctl, audit logging, persistent journal)
 - ZFS auto-scrub and auto-snapshots enabled
-- SSH enabled (LAN-only intent, interface firewall rules need debugging)
-- Fail2ban added
+- SSH enabled with fail2ban
 - Workstation SSH key authorized
+
+### 2026-06-03 — Network Hardening
+
+- SSH restricted to WireGuard mesh (wg0-only, `openFirewall = false`)
+- All host keys authorized (full mesh)
+- Scoped passwordless sudo added
+- sops-nix added for WireGuard private key management
+- Syncthing active (claude-context, git-crypt-keys)
