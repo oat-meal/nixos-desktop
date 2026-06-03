@@ -81,7 +81,7 @@ nixos-lab/
 │   │   ├── core/                    # Required on ALL hosts
 │   │   │   ├── boot.nix             # systemd-boot
 │   │   │   ├── locale.nix           # Locale/timezone
-│   │   │   ├── networking.nix       # NetworkManager
+│   │   │   ├── networking.nix       # NetworkManager, host resolution (WireGuard IPs)
 │   │   │   ├── nix.nix              # Flakes, settings
 │   │   │   ├── packages.nix         # Base CLI tools
 │   │   │   ├── shell.nix            # Zsh + Oh-My-Zsh
@@ -91,9 +91,10 @@ nixos-lab/
 │   │       ├── desktop/             # Niri, audio, fonts, apps
 │   │       ├── gaming/              # Steam, GameMode, Vulkan
 │   │       ├── hardware/            # AMD, Bluetooth, Framework
-│   │       ├── networking/          # Firewall, NordVPN, WiFi, WireGuard, Syncthing, sops
+│   │       ├── networking/          # Firewall, NordVPN, SSH, WiFi, WireGuard, Syncthing, sops
 │   │       ├── power/               # Performance, portable, hibernate
-│   │       └── security/            # LUKS/FIDO2, YubiKey, PAM U2F
+│   │       ├── security/            # LUKS/FIDO2, YubiKey, PAM U2F, sudo
+│   │       └── storage/             # ZFS maintenance (scrub, snapshots, logrotate)
 │   │
 │   ├── workstation/                 # Gaming workstation
 │   ├── laptop/                      # Framework 13 laptop

@@ -24,7 +24,7 @@ Run `hostname` at conversation start to determine context.
 hosts/
 ├── common/
 │   ├── core/          # Required on ALL hosts (boot, locale, networking, nix, packages, shell, users)
-│   └── optional/      # Mix-in modules (desktop/, gaming/, hardware/, networking/, power/, security/)
+│   └── optional/      # Mix-in modules (desktop/, gaming/, hardware/, networking/, power/, security/, storage/)
 ├── workstation/       # Gaming workstation config
 ├── laptop/            # Framework 13 config
 ├── server/            # Home server
@@ -67,7 +67,7 @@ bash /etc/nixos/deploy.sh all
 ### Manual remote rebuild
 
 ```bash
-ssh server-nixos "cd /etc/nixos && sudo git pull --rebase && sudo nixos-rebuild switch --flake /etc/nixos#server-nixos"
+ssh server-nixos "sudo git -C /etc/nixos -c core.sshCommand='ssh -i /home/oat/.ssh/id_ed25519 -o IdentitiesOnly=yes' pull --rebase && sudo nixos-rebuild switch --flake /etc/nixos#server-nixos"
 ```
 
 ## Host Access Map
