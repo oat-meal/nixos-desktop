@@ -75,6 +75,7 @@
   ################################
   services.openssh = {
     enable = true;
+    openFirewall = false;  # SSH restricted to wg0 below
     settings = {
       PermitRootLogin = "no";
       PasswordAuthentication = false;
@@ -87,7 +88,6 @@
   };
 
   # Only allow SSH over WireGuard mesh
-  networking.firewall.allowedTCPPorts = lib.mkForce [];
   networking.firewall.interfaces."wg0".allowedTCPPorts = [ 22 ];
 
   # Scoped passwordless sudo for management commands

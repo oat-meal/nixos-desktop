@@ -55,6 +55,7 @@
   ################################
   services.openssh = {
     enable = true;
+    openFirewall = false;  # SSH restricted to wg0 below
     settings = {
       PermitRootLogin = "no";
       PasswordAuthentication = false;
@@ -68,7 +69,10 @@
   };
 
   # Mosh for roaming SSH (survives WiFi drops, laptop sleep)
-  programs.mosh.enable = true;
+  programs.mosh = {
+    enable = true;
+    openFirewall = false;  # Mosh restricted to wg0 below
+  };
 
   # Fail2ban — rate-limit SSH brute force attempts
   services.fail2ban = {
