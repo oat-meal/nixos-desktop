@@ -184,7 +184,6 @@ IPs and keys are in `secrets/network.nix`. The network topology:
 - git-crypt for build-time secrets (network config)
 - Kernel hardening with loose rp_filter for WireGuard compatibility
 - NordVPN via WireGuard (wgnord)
-- Zen Browser as sole browser
 
 ## License
 
