@@ -8,7 +8,7 @@ Multi-host NixOS infrastructure managed as a single Nix Flake. Declarative confi
 |------|----------|---------|--------|
 | `workstation-nixos` | Ryzen 9950X, 64GB RAM, AMD GPU | ZFS on LUKS2 | Active |
 | `laptop-nixos` | Framework 13, Ryzen, 32GB RAM | ZFS on LUKS2 | Active |
-| `server-nixos` | Framework Server (5U rack) | ZFS on LUKS2 | Active |
+| `server-nixos` | Ryzen AI Max+ 395, 128GB RAM, AMD iGPU | ZFS on LUKS2 | Active |
 
 ## Storage Architecture
 
@@ -62,6 +62,7 @@ passwd oat
 nixos-lab/
 ├── flake.nix                        # Flake: all hosts + installer ISO
 ├── flake.lock                       # Pinned inputs
+├── deploy.sh                        # Multi-host deploy script
 │
 ├── secrets/
 │   ├── network.nix                  # IPs, keys, device IDs (git-crypt encrypted)
@@ -147,6 +148,12 @@ nix-shell -p git-crypt --run 'git add -A && git commit -m "message"'
 # Rebuild current host
 sudo nixos-rebuild switch --flake /etc/nixos#$(hostname)
 
+# Deploy to all hosts (rebuild local, push, rebuild remotes via WireGuard SSH)
+bash /etc/nixos/deploy.sh all
+
+# Deploy to a specific remote host
+bash /etc/nixos/deploy.sh server-nixos
+
 # Preview changes
 sudo nixos-rebuild dry-activate --flake /etc/nixos#$(hostname)
 
@@ -170,7 +177,7 @@ sudo nix-collect-garbage --delete-older-than 30d
 
 IPs and keys are in `secrets/network.nix`. The network topology:
 
-- **WireGuard mesh** (`wg0`): encrypted full-mesh between all hosts, separate port from NordVPN
+- **WireGuard mesh** (`wg0`): encrypted full-mesh between all hosts (10.100.0.0/24). All SSH access is restricted to this mesh.
 - **NordVPN** (`wgnord`): outbound VPN via wgnord on workstation-nixos and laptop-nixos
 - **Syncthing**: file sync across all hosts (LAN-only, no relays). Syncs `~/.claude/` and `~/.config/git-crypt/`
 - **NFS**: server exports `/storage` to LAN subnet
@@ -180,7 +187,8 @@ IPs and keys are in `secrets/network.nix`. The network topology:
 - LUKS2 with argon2id key derivation
 - YubiKey FIDO2 for disk unlock (optional second factor)
 - PAM U2F for sudo/login
-- Firewall enabled on all hosts
+- SSH restricted to WireGuard mesh (no LAN SSH), key-only auth, fail2ban on all hosts
+- Firewall enabled on all hosts; `openFirewall = false` on SSH/Mosh services
 - git-crypt for build-time secrets (network config)
 - Kernel hardening with loose rp_filter for WireGuard compatibility
 - NordVPN via WireGuard (wgnord)
