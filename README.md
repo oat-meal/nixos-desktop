@@ -63,6 +63,10 @@ nixos-lab/
 ├── flake.nix                        # Flake: all hosts + installer ISO
 ├── flake.lock                       # Pinned inputs
 │
+├── secrets/
+│   ├── network.nix                  # IPs, keys, device IDs (git-crypt encrypted)
+│   └── network.nix.example          # Template with placeholders
+│
 ├── installer/                       # Custom installer ISO
 │   ├── default.nix                  # ISO system configuration
 │   ├── install.sh                   # Interactive install script
@@ -83,7 +87,7 @@ nixos-lab/
 │   │       ├── desktop/             # Niri, audio, fonts, apps
 │   │       ├── gaming/              # Steam, GameMode, Vulkan
 │   │       ├── hardware/            # AMD, Bluetooth, Framework
-│   │       ├── networking/          # Firewall, NordVPN, WiFi, WireGuard
+│   │       ├── networking/          # Firewall, NordVPN, WiFi, WireGuard, Syncthing
 │   │       ├── power/               # Performance, portable, hibernate
 │   │       └── security/            # LUKS/FIDO2, YubiKey, PAM U2F
 │   │
@@ -108,15 +112,33 @@ nixos-lab/
 
 Network configuration (IPs, public keys, device IDs) is stored in `secrets/network.nix`, encrypted in git via **git-crypt**. A template with placeholder values is at `secrets/network.nix.example`.
 
-After cloning the repo on a new host:
+### For repo contributors (using your own lab)
+
+No git-crypt key needed. Copy the template and fill in your own values:
 
 ```bash
-# Unlock with a GPG key that has been added to git-crypt
-git-crypt unlock
+cp secrets/network.nix.example secrets/network.nix
+# Edit secrets/network.nix with your IPs, keys, and device IDs
+```
 
-# Or for first-time setup on a new host, export and import the symmetric key
-# From an unlocked host:  git-crypt export-key /tmp/git-crypt-key
-# On the new host:        git-crypt unlock /tmp/git-crypt-key
+### For existing lab hosts
+
+The git-crypt symmetric key is synced via Syncthing to `~/.config/git-crypt/nixos-lab.key` on all hosts.
+
+```bash
+# Unlock the repo after a fresh clone
+git-crypt unlock ~/.config/git-crypt/nixos-lab.key
+
+# Export the key for a new host (from an unlocked host)
+git-crypt export-key /tmp/git-crypt-key
+```
+
+### Committing changes to encrypted files
+
+git-crypt must be in PATH when staging encrypted files:
+
+```bash
+nix-shell -p git-crypt --run 'git add -A && git commit -m "message"'
 ```
 
 ## System Management
@@ -146,17 +168,12 @@ sudo nix-collect-garbage --delete-older-than 30d
 
 ## Networking
 
-| | LAN | WireGuard Mesh |
-|---|---|---|
-| Subnet | <lan-subnet> | 10.100.0.0/24 |
-| `workstation-nixos` | <lan-ip> | 10.100.0.1 |
-| `server-nixos` | <server-lan-ip> | 10.100.0.2 |
-| `laptop-nixos` | <laptop-lan-ip> | 10.100.0.3 |
+IPs and keys are in `secrets/network.nix`. The network topology:
 
-- **WireGuard mesh** (`wg0`, port 51821): encrypted connectivity between all hosts
-- **NordVPN** (`wgnord`, port 51820): outbound VPN via wgnord on workstation-nixos and laptop-nixos
-- **Syncthing**: file sync across all hosts (LAN-only, no relays)
-- **NFS**: server exports `/storage` to LAN
+- **WireGuard mesh** (`wg0`): encrypted full-mesh between all hosts, separate port from NordVPN
+- **NordVPN** (`wgnord`): outbound VPN via wgnord on workstation-nixos and laptop-nixos
+- **Syncthing**: file sync across all hosts (LAN-only, no relays). Syncs `~/.claude/` and `~/.config/git-crypt/`
+- **NFS**: server exports `/storage` to LAN subnet
 
 ## Security
 
@@ -164,6 +181,8 @@ sudo nix-collect-garbage --delete-older-than 30d
 - YubiKey FIDO2 for disk unlock (optional second factor)
 - PAM U2F for sudo/login
 - Firewall enabled on all hosts
+- git-crypt for build-time secrets (network config)
+- Kernel hardening with loose rp_filter for WireGuard compatibility
 - NordVPN via WireGuard (wgnord)
 - Zen Browser as sole browser
 
