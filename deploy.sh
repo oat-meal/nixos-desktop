@@ -39,6 +39,16 @@ rebuild_remote() {
 # No args = local
 targets=("${@:-local}")
 
+# Validate targets
+valid_targets="local all server-nixos laptop-nixos workstation-nixos"
+for target in "${targets[@]}"; do
+  if [[ ! " $valid_targets " =~ " $target " ]]; then
+    echo "Unknown target: $target"
+    echo "Usage: deploy.sh [local|all|server-nixos|laptop-nixos|workstation-nixos]"
+    exit 1
+  fi
+done
+
 # Show plan and confirm
 echo "Deploy plan:"
 echo "  Host:    $LOCAL"
