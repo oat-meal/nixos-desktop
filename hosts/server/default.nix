@@ -1,6 +1,6 @@
 # Framework Server — headless home server
 # AMD Ryzen AI Max+ 395, 128GB unified RAM, 2x 1TB NVMe (ZFS mirror)
-# Services: Ollama, Jellyfin, AdGuard Home, NFS/Samba
+# Services: Ollama, Jellyfin, AdGuard Home, NFS
 
 { config, pkgs, lib, ... }:
 
@@ -16,6 +16,7 @@
 
     # Networking
     ../common/optional/networking/sops.nix
+    ../common/optional/networking/ssh.nix
     ../common/optional/networking/syncthing.nix
     ../common/optional/networking/wifi.nix
     ../common/optional/networking/wireguard.nix
@@ -23,6 +24,10 @@
     # Security
     ../common/optional/security/luks.nix
     ../common/optional/security/hardening.nix
+    ../common/optional/security/sudo.nix
+
+    # Storage
+    ../common/optional/storage/zfs-maintenance.nix
   ];
 
   ################################
@@ -52,35 +57,14 @@
   console.packages = [ pkgs.terminus_font ];
 
   ################################
-  ## Remote access
+  ## Remote access (extends shared ssh.nix)
   ################################
-  services.openssh = {
-    enable = true;
-    openFirewall = false;  # SSH restricted to wg0 below
-    settings = {
-      PermitRootLogin = "no";
-      PasswordAuthentication = false;
-      X11Forwarding = false;
-      MaxAuthTries = 3;
-      ClientAliveInterval = 300;
-      ClientAliveCountMax = 2;
-      AllowTcpForwarding = false;
-      GatewayPorts = "no";
-    };
-  };
+  services.openssh.settings.GatewayPorts = "no";
 
   # Mosh for roaming SSH (survives WiFi drops, laptop sleep)
   programs.mosh = {
     enable = true;
-    openFirewall = false;  # Mosh restricted to wg0 below
-  };
-
-  # Fail2ban — rate-limit SSH brute force attempts
-  services.fail2ban = {
-    enable = true;
-    maxretry = 5;
-    bantime = "1h";
-    bantime-increment.enable = true;
+    openFirewall = false;
   };
 
   ################################
@@ -138,7 +122,7 @@
   virtualisation.oci-containers.backend = "podman";
 
   ################################
-  ## NFS + Samba
+  ## NFS
   ################################
   services.nfs.server = {
     enable = true;
@@ -148,29 +132,6 @@
       /storage  ${secrets.wireguard.meshSubnet}(rw,sync,no_subtree_check,root_squash)
     '';
   };
-
-  # services.samba = {
-  #   enable = true;
-  #   settings = {
-  #     global = {
-  #       workgroup = "LAB";
-  #       "server string" = "server-nixos";
-  #       security = "user";
-  #     };
-  #     share = {
-  #       path = "/tank/share";
-  #       browseable = true;
-  #       "read only" = false;
-  #       "valid users" = "oat";
-  #     };
-  #     media = {
-  #       path = "/tank/media";
-  #       browseable = true;
-  #       "read only" = true;
-  #       "valid users" = "oat";
-  #     };
-  #   };
-  # };
 
   ################################
   ## Firewall
@@ -192,23 +153,6 @@
     interfaces."wg0".allowedUDPPortRanges = [
       { from = 60000; to = 60010; }  # Mosh
     ];
-  };
-
-  ################################
-  ## ZFS maintenance
-  ################################
-  services.zfs.autoScrub = {
-    enable = true;
-    interval = "monthly";
-  };
-
-  services.zfs.autoSnapshot = {
-    enable = true;
-    frequent = 4;    # 15-min snapshots, keep 4
-    hourly = 24;
-    daily = 7;
-    weekly = 4;
-    monthly = 12;
   };
 
   ################################
@@ -236,21 +180,12 @@
   ################################
   users.users.oat.extraGroups = lib.mkAfter [ "podman" ];
 
-  # Scoped passwordless sudo for headless remote management
-  security.sudo.extraRules = [{
+  # Additional passwordless sudo commands (extends shared sudo.nix)
+  security.sudo.extraRules = lib.mkAfter [{
     users = [ "oat" ];
     commands = [
-      { command = "/run/current-system/sw/bin/nixos-rebuild"; options = [ "NOPASSWD" ]; }
-      { command = "/run/current-system/sw/bin/nix*"; options = [ "NOPASSWD" ]; }
-      { command = "/run/current-system/sw/bin/systemctl"; options = [ "NOPASSWD" ]; }
-      { command = "/run/current-system/sw/bin/git"; options = [ "NOPASSWD" ]; }
-      { command = "/run/current-system/sw/bin/zfs"; options = [ "NOPASSWD" ]; }
-      { command = "/run/current-system/sw/bin/zpool"; options = [ "NOPASSWD" ]; }
       { command = "/run/current-system/sw/bin/podman"; options = [ "NOPASSWD" ]; }
       { command = "/run/current-system/sw/bin/udevadm"; options = [ "NOPASSWD" ]; }
     ];
   }];
-  users.users.oat.openssh.authorizedKeys.keys = let
-    secrets = import ../../secrets/network.nix;
-  in lib.attrValues secrets.sshKeys;
 }

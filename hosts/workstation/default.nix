@@ -32,12 +32,19 @@
     ../common/optional/networking/firewall.nix
     ../common/optional/networking/nordvpn.nix
     ../common/optional/networking/sops.nix
+    ../common/optional/networking/ssh.nix
     ../common/optional/networking/syncthing.nix
     ../common/optional/networking/wifi.nix
     ../common/optional/networking/wireguard.nix
 
     # Power
     ../common/optional/power/performance.nix
+
+    # Security
+    ../common/optional/security/sudo.nix
+
+    # Storage
+    ../common/optional/storage/zfs-maintenance.nix
   ];
 
   ################################
@@ -68,36 +75,6 @@
   boot.kernelModules = [
     "ath12k_pci"
   ];
-
-  ################################
-  ## SSH — WireGuard mesh only
-  ################################
-  services.openssh = {
-    enable = true;
-    openFirewall = false;
-    settings = {
-      PermitRootLogin = "no";
-      PasswordAuthentication = false;
-      X11Forwarding = false;
-      MaxAuthTries = 3;
-      ClientAliveInterval = 300;
-      ClientAliveCountMax = 2;
-      AllowTcpForwarding = false;
-    };
-  };
-
-  networking.firewall.interfaces."wg0".allowedTCPPorts = [ 22 ];
-
-  users.users.oat.openssh.authorizedKeys.keys = let
-    secrets = import ../../secrets/network.nix;
-  in lib.attrValues secrets.sshKeys;
-
-  services.fail2ban = {
-    enable = true;
-    maxretry = 5;
-    bantime = "1h";
-    bantime-increment.enable = true;
-  };
 
   ################################
   ## GameMode override (16-core CPU)
@@ -181,25 +158,6 @@
     };
   };
 
-  services.logrotate.enable = true;
-
-  ################################
-  ## ZFS maintenance
-  ################################
-  services.zfs.autoScrub = {
-    enable = true;
-    interval = "monthly";
-  };
-
-  services.zfs.autoSnapshot = {
-    enable = true;
-    frequent = 4;
-    hourly = 24;
-    daily = 7;
-    weekly = 4;
-    monthly = 12;
-  };
-
   ################################
   ## NFS mount — server storage
   ################################
@@ -213,21 +171,6 @@
   ## Flatpak support
   ################################
   services.flatpak.enable = true;
-
-  ################################
-  ## Passwordless sudo — scoped to management commands
-  ################################
-  security.sudo.extraRules = [{
-    users = [ "oat" ];
-    commands = [
-      { command = "/run/current-system/sw/bin/nixos-rebuild"; options = [ "NOPASSWD" ]; }
-      { command = "/run/current-system/sw/bin/nix*"; options = [ "NOPASSWD" ]; }
-      { command = "/run/current-system/sw/bin/systemctl"; options = [ "NOPASSWD" ]; }
-      { command = "/run/current-system/sw/bin/git"; options = [ "NOPASSWD" ]; }
-      { command = "/run/current-system/sw/bin/zfs"; options = [ "NOPASSWD" ]; }
-      { command = "/run/current-system/sw/bin/zpool"; options = [ "NOPASSWD" ]; }
-    ];
-  }];
 
   ################################
   ## nix-ld for unpatched binaries (Fightcade, etc.)

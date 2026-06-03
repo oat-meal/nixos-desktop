@@ -24,7 +24,6 @@
     xwayland
 
     # Cursors
-    catppuccin-cursors
     bibata-cursors
 
     # X11 compatibility

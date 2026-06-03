@@ -13,7 +13,6 @@
     pkgs.unstable.discord  # Voice/video chat and messaging (from unstable for latest fixes)
 
     ######## Stable GUI apps ########
-    librewolf              # LibreWolf browser (privacy-hardened Firefox fork)
     mpv                    # Lightweight media player
     rustdesk-flutter       # Remote desktop client
     waypaper               # GUI wallpaper manager for Wayland (swaybg backend)

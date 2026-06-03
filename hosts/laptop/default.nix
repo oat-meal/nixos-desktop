@@ -32,6 +32,7 @@
     ../common/optional/networking/firewall.nix
     ../common/optional/networking/nordvpn.nix
     ../common/optional/networking/sops.nix
+    ../common/optional/networking/ssh.nix
     ../common/optional/networking/syncthing.nix
     ../common/optional/networking/wifi.nix
     ../common/optional/networking/wireguard.nix
@@ -39,6 +40,12 @@
     # Power
     ../common/optional/power/portable.nix
     ../common/optional/power/hibernate.nix
+
+    # Security
+    ../common/optional/security/sudo.nix
+
+    # Storage
+    ../common/optional/storage/zfs-maintenance.nix
   ];
 
   ################################
@@ -70,67 +77,6 @@
   ## WiFi power saving (laptop)
   ################################
   networking.networkmanager.wifi.powersave = true;
-
-  ################################
-  ## SSH — LAN only
-  ################################
-  services.openssh = {
-    enable = true;
-    openFirewall = false;  # SSH restricted to wg0 below
-    settings = {
-      PermitRootLogin = "no";
-      PasswordAuthentication = false;
-      X11Forwarding = false;
-      MaxAuthTries = 3;
-      ClientAliveInterval = 300;
-      ClientAliveCountMax = 2;
-      AllowTcpForwarding = false;
-    };
-  };
-
-  # Only allow SSH over WireGuard mesh
-  networking.firewall.interfaces."wg0".allowedTCPPorts = [ 22 ];
-
-  # Scoped passwordless sudo for management commands
-  security.sudo.extraRules = [{
-    users = [ "oat" ];
-    commands = [
-      { command = "/run/current-system/sw/bin/nixos-rebuild"; options = [ "NOPASSWD" ]; }
-      { command = "/run/current-system/sw/bin/nix*"; options = [ "NOPASSWD" ]; }
-      { command = "/run/current-system/sw/bin/systemctl"; options = [ "NOPASSWD" ]; }
-      { command = "/run/current-system/sw/bin/git"; options = [ "NOPASSWD" ]; }
-      { command = "/run/current-system/sw/bin/zfs"; options = [ "NOPASSWD" ]; }
-      { command = "/run/current-system/sw/bin/zpool"; options = [ "NOPASSWD" ]; }
-    ];
-  }];
-
-  services.fail2ban = {
-    enable = true;
-    maxretry = 5;
-    bantime = "1h";
-    bantime-increment.enable = true;
-  };
-
-  users.users.oat.openssh.authorizedKeys.keys = let
-    secrets = import ../../secrets/network.nix;
-  in lib.attrValues secrets.sshKeys;
-
-  ################################
-  ## ZFS maintenance
-  ################################
-  services.zfs.autoScrub = {
-    enable = true;
-    interval = "monthly";
-  };
-
-  services.zfs.autoSnapshot = {
-    enable = true;
-    frequent = 4;
-    hourly = 24;
-    daily = 7;
-    weekly = 4;
-    monthly = 12;
-  };
 
   ################################
   ## User groups

@@ -19,11 +19,5 @@
     framework-tool
   ];
 
-  # Firmware for WiFi
-  hardware.firmware = with pkgs; [
-    wireless-regdb
-  ];
-
-  # WiFi regulatory database
-  hardware.wirelessRegulatoryDatabase = true;
+  # WiFi firmware and regulatory database provided by wifi.nix
 }
