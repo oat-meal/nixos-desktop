@@ -9,6 +9,22 @@ Repeatable audit procedure for all NixOS lab hosts.
 - Monthly maintenance check
 - When adding a new host
 
+## Flake Input Updates
+
+Update monthly to stay current with security patches:
+
+```bash
+sudo nix flake update /etc/nixos
+sudo nixos-rebuild switch --flake /etc/nixos#$(hostname)
+# Test, then deploy to other hosts
+bash /etc/nixos/deploy.sh all
+```
+
+Check input ages during audits:
+```bash
+nix flake metadata /etc/nixos 2>/dev/null | grep -A20 "Inputs:"
+```
+
 ## Audit Checklist
 
 Run on each host. Record results in the host's audit file (`docs/audit/<hostname>.md`).

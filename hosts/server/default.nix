@@ -72,8 +72,8 @@
   ################################
   services.ollama = {
     enable = true;
-    # LAN accessible (firewall restricts external access)
-    host = "0.0.0.0";
+    # Bind to WireGuard IP (firewall also restricts to wg0)
+    host = "10.100.0.2";
     port = 11434;
     # AMD GPU acceleration (Radeon 8060S, RDNA 3.5, ROCm)
     acceleration = "rocm";

@@ -63,6 +63,28 @@ if [[ -n "$changes" ]]; then
   echo "$changes"
 fi
 
+# Pre-flight: verify all target configs evaluate
+echo ""
+echo "==> Pre-flight: evaluating flake configurations..."
+eval_targets=()
+for target in "${targets[@]}"; do
+  case "$target" in
+    local) eval_targets+=("$LOCAL") ;;
+    all) eval_targets+=(workstation-nixos laptop-nixos server-nixos) ;;
+    *) eval_targets+=("$target") ;;
+  esac
+done
+# Deduplicate
+eval_targets=($(printf '%s\n' "${eval_targets[@]}" | sort -u))
+for host in "${eval_targets[@]}"; do
+  if ! nix eval "$FLAKE#nixosConfigurations.$host.config.system.build.toplevel.drvPath" >/dev/null 2>&1; then
+    echo "FAIL: $host config does not evaluate cleanly"
+    nix eval "$FLAKE#nixosConfigurations.$host.config.system.build.toplevel.drvPath" 2>&1 | tail -5
+    exit 1
+  fi
+  echo "  $host: OK"
+done
+
 confirm "Proceed with deployment?"
 
 for target in "${targets[@]}"; do

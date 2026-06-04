@@ -47,6 +47,14 @@ Items that appear anomalous in system checks but are expected behavior. Check th
 - **Symptom**: fc2-electron SIGSEGV in Flatpak sandbox
 - **Reason**: Upstream Fightcade Flatpak bug. NixOS config is correct.
 
+### sudo PAM "conversation failed" in Non-TTY Context
+- **Symptom**: `pam_unix(sudo:auth): conversation failed` and `auth could not identify password for [oat]`
+- **Reason**: Claude Code and deploy scripts invoke sudo without a TTY. Passwordless sudo matches specific commands but PAM still logs the auth attempt. Not a security risk.
+
+### sops-nix /run/secrets Permission Denied
+- **Symptom**: `ls: cannot open directory '/run/secrets/': Permission denied`
+- **Reason**: Correct behavior — secrets are root-owned with mode 0600. sops-nix symlinks through `/run/secrets.d/`.
+
 ## workstation-nixos Only
 
 ### amdgpu MES Errors (RDNA 4)
@@ -67,6 +75,10 @@ Items that appear anomalous in system checks but are expected behavior. Check th
 - **Reason**: Electron/Chromium apps (Discord, etc.) use `chrome_status_icon` tray items with empty `IconName` fields. Waybar falls back to pixmap data and renders correctly. Upstream Chromium limitation.
 
 ## laptop-nixos Only
+
+### UCSI USB-C Controller Error
+- **Symptom**: `ucsi_acpi USBC000:00: unknown error 256`
+- **Reason**: Framework 13 USB-C controller firmware noise. Cosmetic, no functional impact.
 
 ### amdgpu Adaptive Backlight Disabled
 - **Symptom**: `amdgpu.abmlevel=0` kernel parameter
