@@ -82,3 +82,21 @@ Changes applied via shared module extraction (see workstation audit for full lis
 - Host resolution switched to WireGuard IPs
 - Duplicate packages removed (`librewolf`, `lm_sensors`, `catppuccin-cursors`, `wireless-regdb`)
 - SSH, sudo, ZFS config deduplicated to shared modules
+
+### 2026-06-04 — Full Audit
+
+**Status**: Healthy
+
+**Remediated:**
+
+| Issue | Resolution |
+|-------|-----------|
+| sshd bind race during rebuild | Added systemd ordering: sshd after wireguard-wg0.service (shared ssh.nix) |
+| Flake inputs 3 months old | Updated all inputs |
+
+**Accepted (no action):**
+
+| Issue | Rationale |
+|-------|-----------|
+| systemd 258.3 coredumps (logind, udevadm) | Pre-date update to 258.7. Monitor for recurrence. |
+| PAM auth failures from 10.100.0.3 | SSH auth attempts during host key change. Transient. |

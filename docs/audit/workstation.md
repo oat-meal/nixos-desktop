@@ -162,3 +162,26 @@ WiFi shutdown cleanup service exists for ath12k driver issues (`systemd.services
 |-------|-----------|
 | `nix*`/`git`/`systemctl` sudo wildcards | Effectively full root, acceptable for single-user lab |
 | `hostId` not in host config | Already in `hardware-configuration.nix` (installer-generated) |
+
+### 2026-06-04 — Full Audit
+
+**Status**: Healthy
+
+**Remediated:**
+
+| Issue | Resolution |
+|-------|-----------|
+| sshd bind race during rebuild | Added `systemd.services.sshd.after/wants = wireguard-wg0.service` in shared ssh.nix |
+| Ollama bound to 0.0.0.0 (server) | Bound to WireGuard IP 10.100.0.2 |
+| AdGuard web UI bound to 0.0.0.0 (server) | Bound to WireGuard IP 10.100.0.2:3000 |
+| Deploy script lacks pre-flight | Added `nix eval` validation before deployment |
+| Flake inputs 3 months old | Updated all inputs (nixpkgs May 26, HM May 23, niri Jun 1, zen Jun 3, sops-nix May 5) |
+
+**Accepted (no action):**
+
+| Issue | Rationale |
+|-------|-----------|
+| USB enumeration errors (port 5-2.2) | Likely physical (flaky device/cable). Monitor. |
+| `sm-notify: Failed to open directory sm.bak` | NFS statd cosmetic, no functional impact |
+| `Failed to fork off sandboxing environment` | Transient systemd generator issue during rebuild |
+| WireGuard `REPLACE-WITH-*-PUBLIC-KEY` errors | Historical, from pre-git-crypt-unlock rebuilds |

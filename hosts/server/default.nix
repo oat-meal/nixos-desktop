@@ -96,6 +96,9 @@
   services.adguardhome = {
     enable = true;
     mutableSettings = false;
+    # Bind web UI to WireGuard IP (firewall also restricts to wg0)
+    host = "10.100.0.2";
+    port = 3000;
     settings = {
       dns = {
         bind_hosts = [ "0.0.0.0" ];

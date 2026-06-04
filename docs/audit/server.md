@@ -84,3 +84,24 @@
 | SSH/sudo/ZFS config duplicated | Extracted to shared modules |
 | SMART/smartmontools/lm_sensors/htop duplicated | Consolidated to shared modules and core packages |
 | Host resolution used DHCP LAN IPs | Switched to WireGuard mesh IPs |
+
+### 2026-06-04 — Full Audit
+
+**Status**: Healthy
+
+**Remediated:**
+
+| Issue | Resolution |
+|-------|-----------|
+| Ollama bound to 0.0.0.0 | Bound to WireGuard IP 10.100.0.2 (defense-in-depth with firewall) |
+| AdGuard web UI bound to 0.0.0.0 | Bound to WireGuard IP 10.100.0.2:3000 |
+| sshd bind race during rebuild | Added systemd ordering: sshd after wireguard-wg0.service |
+| Flake inputs 3 months old | Updated all inputs |
+
+**Accepted (no action):**
+
+| Issue | Rationale |
+|-------|-----------|
+| PAM auth failures from LAN IPs (<lan-subnet>) | SSH correctly rejected — not listening on LAN |
+| `PAM user mismatch` during rebuild | Stale SSH session, transient |
+| WireGuard `REPLACE-WITH-*-PUBLIC-KEY` errors | Historical, from pre-git-crypt-unlock rebuilds |
