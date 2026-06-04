@@ -56,6 +56,12 @@ sudo systemd-cryptenroll /dev/nvme0n1p2 --fido2-device=auto
 passwd oat
 ```
 
+> **Boot unlock order:** with a PIN-protected FIDO2 enrollment, the unlock at
+> boot requires the PIN *first*, then a touch. systemd prompts for the token
+> PIN and only blinks the YubiKey for touch after the PIN is accepted. The
+> prompt does not state this order, so it is easy to tap the key too early — a
+> premature tap is ignored, so just enter the PIN and tap when it blinks.
+
 ## Repository Structure
 
 ```
