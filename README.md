@@ -14,6 +14,8 @@ Angle-bracket tokens in the docs are placeholders — replace them with your own
 
 Host names (`workstation-nixos`, `laptop-nixos`, `server-nixos`) are examples — rename them for your own machines. WireGuard mesh addresses (`10.100.0.x`) are shown as-is; substitute your own mesh range.
 
+> New to NixOS? See [docs/nixos-primer.md](docs/nixos-primer.md)
+
 ## Hosts
 
 | Host | Hardware | Storage | Status |
