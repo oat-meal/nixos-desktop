@@ -48,7 +48,7 @@ Items that appear anomalous in system checks but are expected behavior. Check th
 - **Reason**: Upstream Fightcade Flatpak bug. NixOS config is correct.
 
 ### sudo PAM "conversation failed" in Non-TTY Context
-- **Symptom**: `pam_unix(sudo:auth): conversation failed` and `auth could not identify password for [oat]`
+- **Symptom**: `pam_unix(sudo:auth): conversation failed` and `auth could not identify password for [<user>]`
 - **Reason**: Claude Code and deploy scripts invoke sudo without a TTY. Passwordless sudo matches specific commands but PAM still logs the auth attempt. Not a security risk.
 
 ### sops-nix /run/secrets Permission Denied

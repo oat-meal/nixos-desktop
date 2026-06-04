@@ -176,4 +176,4 @@ sudo nft list ruleset | grep wgnord
 ## Configuration Files
 
 - `/etc/nixos/hosts/common/optional/networking/nordvpn.nix` — WireGuard VPN, firewall, helper scripts
-- `/etc/nixos/home/oat/default.nix` — Waybar VPN status module
+- `/etc/nixos/home/<user>/default.nix` — Waybar VPN status module

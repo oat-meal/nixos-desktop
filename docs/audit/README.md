@@ -152,9 +152,9 @@ After auditing individual hosts, verify connectivity and shared state:
 
 ```bash
 # WireGuard mesh — full connectivity
-ssh -o ConnectTimeout=5 oat@10.100.0.1 "echo workstation OK"
-ssh -o ConnectTimeout=5 oat@10.100.0.2 "echo server OK"
-ssh -o ConnectTimeout=5 oat@10.100.0.3 "echo laptop OK"
+ssh -o ConnectTimeout=5 <user>@10.100.0.1 "echo workstation OK"
+ssh -o ConnectTimeout=5 <user>@10.100.0.2 "echo server OK"
+ssh -o ConnectTimeout=5 <user>@10.100.0.3 "echo laptop OK"
 
 # LAN SSH blocked on all hosts
 nc -z -w 3 <server-lan-ip> 22 && echo "server LAN SSH OPEN" || echo "server LAN SSH blocked"

@@ -80,16 +80,16 @@ WiFi shutdown cleanup service exists for ath12k driver issues (`systemd.services
 
 | Issue | Resolution | Files Changed |
 |-------|-----------|---------------|
-| Hardcoded home path in steam.nix | Use `config.users.users.oat.home` | `gaming/steam.nix` |
+| Hardcoded home path in steam.nix | Use `config.users.users.<user>.home` | `gaming/steam.nix` |
 | No garbage collection | Added weekly GC, 30-day retention | `core/nix.nix` |
 | Timezone mismatch (UTC vs Denver) | System timezone → America/Denver | `core/locale.nix` |
 | Unstable overlay defined 3 times | Kept flake.nix only | Deleted `overlays/`, `modules/unstable-packages.nix` |
 | Logrotate disabled | Re-enabled | `hosts/workstation/default.nix` |
 | Duplicate Wayland session vars | Removed from graphics.nix | `gaming/graphics.nix` |
-| GPG agent configured twice | System-level only | `home/oat/default.nix`, `yubikey/default.nix` |
+| GPG agent configured twice | System-level only | `home/<user>/default.nix`, `yubikey/default.nix` |
 | Redundant `iwlwifi.power_scheme` | Removed | `hosts/workstation/default.nix` |
 | GameMode core_count string type | Changed to int `12` | `hosts/workstation/default.nix` |
-| Duplicate theme files | Consolidated to common | `home/oat/default.nix` |
+| Duplicate theme files | Consolidated to common | `home/<user>/default.nix` |
 | Custom Steam desktop entry | Removed (use upstream) | `gaming/steam.nix` |
 | Legacy `modules/` directory | Deleted, migrated imports | Multiple |
 | Browser stack (Firefox, Brave) | Consolidated to Zen Browser | Multiple |

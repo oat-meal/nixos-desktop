@@ -37,9 +37,9 @@
 
 ## Authorized SSH Keys
 
-- `oat@workstation-nixos`
-- `oat@laptop-nixos`
-- `oat@server-nixos`
+- `<user>@workstation-nixos`
+- `<user>@laptop-nixos`
+- `<user>@server-nixos`
 
 ---
 

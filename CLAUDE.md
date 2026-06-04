@@ -30,7 +30,7 @@ hosts/
 ├── server/            # Home server
 
 home/
-├── oat/               # User-specific Home Manager config
+├── <user>/               # User-specific Home Manager config
 └── common/optional/   # Shared HM modules (desktop/, security/, user-packages.nix, theme.nix)
 
 secrets/
@@ -67,7 +67,7 @@ bash /etc/nixos/deploy.sh all
 ### Manual remote rebuild
 
 ```bash
-ssh server-nixos "sudo git -C /etc/nixos -c core.sshCommand='ssh -i /home/oat/.ssh/id_ed25519 -o IdentitiesOnly=yes' pull --rebase && sudo nixos-rebuild switch --flake /etc/nixos#server-nixos"
+ssh server-nixos "sudo git -C /etc/nixos -c core.sshCommand='ssh -i /home/<user>/.ssh/id_ed25519 -o IdentitiesOnly=yes' pull --rebase && sudo nixos-rebuild switch --flake /etc/nixos#server-nixos"
 ```
 
 ## Host Access Map
@@ -132,7 +132,7 @@ NixOS firewall defaults to iptables backend (unless `networking.nftables.enable 
 - **Theme**: Catppuccin Macchiato system-wide
 - **Browser**: Zen Browser
 - **Shell**: Zsh with Oh-My-Zsh
-- **User**: Single user `oat` with Home Manager
+- **User**: Single user `<user>` with Home Manager
 - **Passwordless sudo**: All hosts have scoped NOPASSWD for nixos-rebuild, nix*, systemctl, git, zfs, zpool
 
 ## Documentation Style

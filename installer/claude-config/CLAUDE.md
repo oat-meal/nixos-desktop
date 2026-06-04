@@ -31,7 +31,7 @@ hosts/
 ├── server/            # Home server
 
 home/
-├── oat/               # User-specific Home Manager config
+├── <user>/               # User-specific Home Manager config
 └── common/optional/   # Shared HM modules (desktop/, user-packages.nix, theme.nix)
 
 docs/
@@ -90,7 +90,7 @@ Record audit results in the host's doc file (`docs/audit/<host>.md`).
 - **Theme**: Catppuccin Macchiato system-wide
 - **Browser**: Zen Browser (sole browser)
 - **Shell**: Zsh with Oh-My-Zsh
-- **User**: Single user `oat` with Home Manager
+- **User**: Single user `<user>` with Home Manager
 
 ## Documentation Style
 

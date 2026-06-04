@@ -2,6 +2,18 @@
 
 Multi-host NixOS infrastructure managed as a single Nix Flake. Declarative configurations for a personal computing environment with full-disk encryption (LUKS2 + ZFS) across all hosts.
 
+## Conventions
+
+Angle-bracket tokens in the docs are placeholders — replace them with your own values:
+
+| Placeholder | Meaning |
+|-------------|---------|
+| `<user>` | Your login username (the repo and `/home` are owned by it, not root) |
+| `<server-lan-ip>`, `<laptop-lan-ip>` | Your hosts' LAN addresses |
+| `<lan-subnet>` | Your LAN subnet (e.g. `192.0.2.0/24`) |
+
+Host names (`workstation-nixos`, `laptop-nixos`, `server-nixos`) are examples — rename them for your own machines. WireGuard mesh addresses (`10.100.0.x`) are shown as-is; substitute your own mesh range.
+
 ## Hosts
 
 | Host | Hardware | Storage | Status |
@@ -53,7 +65,7 @@ The installer will:
 sudo systemd-cryptenroll /dev/nvme0n1p2 --fido2-device=auto
 
 # Set user password
-passwd oat
+passwd <user>
 ```
 
 > **Boot unlock order:** with a PIN-protected FIDO2 enrollment, the unlock at
@@ -107,7 +119,7 @@ nixos-lab/
 │   ├── server/                      # Home server
 │
 ├── home/
-│   ├── oat/                         # Home Manager entry point
+│   ├── <user>/                         # Home Manager entry point
 │   └── common/optional/             # HM modules
 │       ├── desktop/                 # Niri, Waybar, Fuzzel, Mako, etc.
 │       ├── security/                # YubiKey user-level config
