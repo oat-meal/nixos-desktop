@@ -26,6 +26,5 @@
 
     ######## Hardware support ########
     libusb1                # USB device access library
-    lm_sensors             # Hardware monitoring tools (sensors command)
   ];
 }

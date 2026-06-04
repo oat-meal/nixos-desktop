@@ -1,7 +1,7 @@
-# ZFS maintenance — scrub and snapshots
+# ZFS maintenance — scrub, snapshots, SMART monitoring
 # Shared across all ZFS hosts
 
-{ ... }:
+{ pkgs, ... }:
 
 {
   services.zfs.autoScrub = {
@@ -19,4 +19,14 @@
   };
 
   services.logrotate.enable = true;
+
+  # SMART disk health monitoring
+  services.smartd = {
+    enable = true;
+    autodetect = true;
+  };
+
+  environment.systemPackages = with pkgs; [
+    smartmontools
+  ];
 }

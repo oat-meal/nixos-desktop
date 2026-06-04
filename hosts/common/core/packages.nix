@@ -18,5 +18,6 @@
     pciutils
     usbutils
     lsb-release
+    lm_sensors
   ];
 }

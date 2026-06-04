@@ -111,17 +111,6 @@
   };
 
   ################################
-  ## Podman + containers
-  ################################
-  virtualisation.podman = {
-    enable = true;
-    dockerCompat = true;
-    defaultNetwork.settings.dns_enabled = true;
-  };
-
-  virtualisation.oci-containers.backend = "podman";
-
-  ################################
   ## NFS
   ################################
   services.nfs.server = {
@@ -138,53 +127,43 @@
   ################################
   networking.firewall = {
     enable = true;
+    logRefusedConnections = true;
+    # LAN-accessible services (needed by phones, TVs, other LAN clients)
     allowedTCPPorts = [
       53     # AdGuard DNS
-      3000   # AdGuard Home web UI
       8096   # Jellyfin
-      11434  # Ollama API
     ];
     allowedUDPPorts = [
       53     # AdGuard DNS
     ];
-    # SSH, Mosh, and NFS only over WireGuard mesh
-    interfaces."wg0".allowedTCPPorts = [ 22 111 2049 ];
+    # WireGuard-only services (admin/internal)
+    interfaces."wg0".allowedTCPPorts = [ 22 111 2049 3000 11434 ];
+    #                                    SSH NFS  NFS  AdGuard-UI Ollama
     interfaces."wg0".allowedUDPPorts = [ 111 2049 ];
     interfaces."wg0".allowedUDPPortRanges = [
       { from = 60000; to = 60010; }  # Mosh
     ];
   };
 
-  ################################
-  ## SMART disk monitoring
-  ################################
-  services.smartd = {
-    enable = true;
-    autodetect = true;
-  };
+  # Disable LLMNR (unnecessary attack surface on headless server)
+  services.resolved.llmnr = "false";
 
   ################################
   ## Server packages
   ################################
   environment.systemPackages = with pkgs; [
-    htop
     iotop
     tmux
     mosh
-    smartmontools  # Disk health monitoring
-    lm_sensors     # Temperature monitoring
   ];
 
   ################################
   ## User groups + SSH access
   ################################
-  users.users.oat.extraGroups = lib.mkAfter [ "podman" ];
-
   # Additional passwordless sudo commands (extends shared sudo.nix)
   security.sudo.extraRules = lib.mkAfter [{
     users = [ "oat" ];
     commands = [
-      { command = "/run/current-system/sw/bin/podman"; options = [ "NOPASSWD" ]; }
       { command = "/run/current-system/sw/bin/udevadm"; options = [ "NOPASSWD" ]; }
     ];
   }];

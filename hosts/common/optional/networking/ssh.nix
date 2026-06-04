@@ -1,15 +1,18 @@
 # SSH server — WireGuard mesh only
-# Hardened sshd with fail2ban, restricted to wg0 interface
+# Hardened sshd with fail2ban, bound to WireGuard IP
 
-{ lib, ... }:
+{ config, lib, ... }:
 
 let
   secrets = import ../../../../secrets/network.nix;
+  hostname = config.networking.hostName;
+  wgIP = secrets.wireguard.meshIPs.${hostname};
 in
 {
   services.openssh = {
     enable = true;
     openFirewall = false;
+    listenAddresses = [{ addr = wgIP; port = 22; }];
     settings = {
       PermitRootLogin = "no";
       PasswordAuthentication = false;
