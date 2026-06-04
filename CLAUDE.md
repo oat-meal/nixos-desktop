@@ -73,9 +73,12 @@ ssh server-nixos "sudo git -C /etc/nixos -c core.sshCommand='ssh -i /home/oat/.s
 ## Host Access Map
 
 ```
-workstation-nixos ──SSH/wg0──> server-nixos  (10.100.0.2)
-workstation-nixos ──SSH/wg0──> laptop-nixos  (10.100.0.3)
-laptop-nixos      ──SSH/wg0──> server-nixos  (10.100.0.2)
+workstation-nixos (10.100.0.1) ──SSH/wg0──> server-nixos  (10.100.0.2)
+workstation-nixos (10.100.0.1) ──SSH/wg0──> laptop-nixos  (10.100.0.3)
+laptop-nixos      (10.100.0.3) ──SSH/wg0──> server-nixos  (10.100.0.2)
+laptop-nixos      (10.100.0.3) ──SSH/wg0──> workstation-nixos (10.100.0.1)
+server-nixos      (10.100.0.2) ──SSH/wg0──> workstation-nixos (10.100.0.1)
+server-nixos      (10.100.0.2) ──SSH/wg0──> laptop-nixos  (10.100.0.3)
 ```
 
 All SSH access is restricted to WireGuard mesh (`wg0`, 10.100.0.0/24). Syncthing syncs over LAN.

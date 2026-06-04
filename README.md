@@ -210,8 +210,8 @@ IPs and keys are in `secrets/network.nix`. The network topology:
 - LUKS2 with argon2id key derivation
 - YubiKey FIDO2 for disk unlock (optional second factor)
 - PAM U2F for sudo/login
-- SSH restricted to WireGuard mesh (no LAN SSH), key-only auth, fail2ban on all hosts
-- Firewall enabled on all hosts; `openFirewall = false` on SSH/Mosh services
+- SSH restricted to WireGuard mesh: `openFirewall = false`, `ListenAddress` bound to each host's WireGuard IP, fail2ban on all hosts
+- Firewall enabled on all hosts; admin services (SSH, Mosh, Ollama, AdGuard UI) restricted to `wg0` interface
 - git-crypt for build-time secrets (network config), sops-nix for runtime secrets (private keys)
 - Kernel hardening with loose rp_filter for WireGuard compatibility
 - NordVPN via WireGuard (wgnord)
