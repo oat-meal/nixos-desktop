@@ -17,7 +17,7 @@
 - **Backlight**: `amdgpu.abmlevel=0` to prevent GPU idle lockups
 - **Fingerprint**: Reader support enabled
 - **Framework tools**: ectool
-- **SSH**: wg0-only, key-only, fail2ban (`openFirewall = false`)
+- **SSH**: wg0-only, key-only, fail2ban (`openFirewall = false`, `ListenAddress = 10.100.0.3`)
 - **Sudo**: Scoped passwordless (nixos-rebuild, nix, systemctl, git, zfs, zpool)
 
 ## Differences from Workstation
@@ -71,3 +71,14 @@ No full on-host audit performed yet. Schedule when next on laptop.
 - Scoped passwordless sudo added
 - sops-nix added for WireGuard private key management
 - Syncthing active (claude-context, git-crypt-keys)
+
+### 2026-06-03 — Full Configuration Audit
+
+**Status**: Healthy after remediation
+
+Changes applied via shared module extraction (see workstation audit for full list):
+- SSH bound to WireGuard IP (`ListenAddress = 10.100.0.3`)
+- SMART monitoring enabled (shared `zfs-maintenance.nix`)
+- Host resolution switched to WireGuard IPs
+- Duplicate packages removed (`librewolf`, `lm_sensors`, `catppuccin-cursors`, `wireless-regdb`)
+- SSH, sudo, ZFS config deduplicated to shared modules

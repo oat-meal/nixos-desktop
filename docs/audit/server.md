@@ -13,7 +13,7 @@
 
 - **Role**: Headless home server
 - **Remote access**: SSH and Mosh (wg0-only, key-only, no root)
-- **Sudo**: Scoped passwordless (nixos-rebuild, nix, systemctl, git, zfs, zpool, podman, udevadm)
+- **Sudo**: Scoped passwordless (nixos-rebuild, nix, systemctl, git, zfs, zpool, udevadm)
 - **Services**: Ollama (ROCm GPU), Jellyfin, AdGuard Home, NFS server
 - **NFS**: Exports `/storage` to WireGuard subnet (root_squash)
 - **ZFS ARC**: 32GB
@@ -28,9 +28,9 @@
 | Mosh | 60000-60010 | UDP | wg0 only |
 | NFS | 111, 2049 | TCP/UDP | wg0 only |
 | AdGuard DNS | 53 | TCP/UDP | all |
-| AdGuard Home Web UI | 3000 | TCP | all |
+| AdGuard Home Web UI | 3000 | TCP | wg0 only |
 | Jellyfin | 8096 | TCP | all |
-| Ollama API | 11434 | TCP | all |
+| Ollama API | 11434 | TCP | wg0 only |
 
 ## Authorized SSH Keys
 
@@ -66,3 +66,21 @@
 - Home Assistant container removed (not in use)
 - sops-nix added for WireGuard private key management
 - Full SSH mesh established (all host keys authorized)
+
+### 2026-06-03 — Full Configuration Audit
+
+**Status**: Healthy after remediation
+
+**Remediated:**
+
+| Issue | Resolution |
+|-------|-----------|
+| SSH bound to 0.0.0.0 | Added `ListenAddress = 10.100.0.2` (WireGuard IP only) |
+| Ollama/AdGuard web UI open globally | Moved to wg0-only firewall (DNS + Jellyfin stay global) |
+| No `logRefusedConnections` | Enabled |
+| LLMNR enabled | Disabled (unnecessary attack surface) |
+| Podman enabled with no containers | Removed Podman, podman group, podman sudo rule |
+| Commented-out Samba block | Removed |
+| SSH/sudo/ZFS config duplicated | Extracted to shared modules |
+| SMART/smartmontools/lm_sensors/htop duplicated | Consolidated to shared modules and core packages |
+| Host resolution used DHCP LAN IPs | Switched to WireGuard mesh IPs |

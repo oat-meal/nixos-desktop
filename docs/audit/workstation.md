@@ -14,7 +14,7 @@
 - **Suspend**: Disabled (Zen 5 hardware issue)
 - **Power**: Always-on, performance governor, all power saving disabled
 - **GameMode**: 12-core pinning (4 reserved for system)
-- **SSH**: wg0-only, key-only, fail2ban (`openFirewall = false`)
+- **SSH**: wg0-only, key-only, fail2ban (`openFirewall = false`, `ListenAddress = 10.100.0.1`)
 - **Sudo**: Scoped passwordless (nixos-rebuild, nix, systemctl, git, zfs, zpool)
 - **NFS mount**: `/mnt/server` via WireGuard (10.100.0.2)
 - **DisplayLink**: EVDI module for USB displays
@@ -137,3 +137,28 @@ WiFi shutdown cleanup service exists for ath12k driver issues (`systemd.services
 - NFS mount changed from LAN hostname to WireGuard IP (10.100.0.2)
 - sops-nix added for WireGuard private key management
 - Syncthing active (claude-context, git-crypt-keys)
+
+### 2026-06-03 — Full Configuration Audit
+
+**Status**: Healthy after remediation
+
+**Remediated:**
+
+| Issue | Resolution |
+|-------|-----------|
+| SSH/sudo/ZFS config duplicated across hosts | Extracted shared modules: `ssh.nix`, `sudo.nix`, `zfs-maintenance.nix` |
+| SSH bound to 0.0.0.0 (defense-in-depth) | Added `ListenAddress = 10.100.0.1` (WireGuard IP only) |
+| No SMART monitoring | Added to shared `zfs-maintenance.nix` |
+| `/etc/hosts` used DHCP LAN IPs | Switched to WireGuard mesh IPs for host resolution |
+| `librewolf` still installed | Removed (consolidated to Zen Browser) |
+| Duplicate `catppuccin-cursors` in apps.nix | Removed (provided by theme.nix) |
+| Duplicate `wireless-regdb` in framework.nix | Removed (provided by wifi.nix) |
+| `lm_sensors` in user-packages and server | Moved to core packages (all hosts) |
+| Logrotate only on workstation | Moved to shared `zfs-maintenance.nix` (all hosts) |
+
+**Accepted (no action):**
+
+| Issue | Rationale |
+|-------|-----------|
+| `nix*`/`git`/`systemctl` sudo wildcards | Effectively full root, acceptable for single-user lab |
+| `hostId` not in host config | Already in `hardware-configuration.nix` (installer-generated) |
