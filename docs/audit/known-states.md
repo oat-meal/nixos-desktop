@@ -55,6 +55,11 @@ Items that appear anomalous in system checks but are expected behavior. Check th
 - **Symptom**: `ls: cannot open directory '/run/secrets/': Permission denied`
 - **Reason**: Correct behavior — secrets are root-owned with mode 0600. sops-nix symlinks through `/run/secrets.d/`.
 
+### sshd Bind Failure During Rebuild (fixed)
+- **Symptom**: `Bind to port 22 on 10.100.0.x failed: Cannot assign requested address` and `Failed to start SSH Daemon`
+- **Reason**: sshd restarted before WireGuard interface had its IP assigned.
+- **Fix**: `systemd.services.sshd.after/wants = wireguard-wg0.service` in ssh.nix. May still appear in journal from pre-fix boots.
+
 ## workstation-nixos Only
 
 ### amdgpu MES Errors (RDNA 4)

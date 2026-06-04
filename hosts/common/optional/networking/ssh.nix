@@ -24,6 +24,12 @@ in
     };
   };
 
+  # Wait for WireGuard before binding (sshd listens on wg0 IP)
+  systemd.services.sshd = {
+    after = [ "wireguard-wg0.service" ];
+    wants = [ "wireguard-wg0.service" ];
+  };
+
   # SSH only over WireGuard mesh
   networking.firewall.interfaces."wg0".allowedTCPPorts = [ 22 ];
 
