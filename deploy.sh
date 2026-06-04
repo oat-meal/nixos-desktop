@@ -36,7 +36,9 @@ rebuild_remote() {
   # Run git as the login user (oat), NOT root: a root-run pull writes
   # root-owned objects/files into the oat-owned repo, which then breaks
   # subsequent user-run git on that host. Only nixos-rebuild needs sudo.
-  ssh "$host" "git -C /etc/nixos pull --rebase && sudo nixos-rebuild switch --flake /etc/nixos#$host"
+  # -n keeps ssh from consuming this script's stdin (the confirm prompts),
+  # so the loop stays correct under both interactive and piped invocation.
+  ssh -n "$host" "git -C /etc/nixos pull --rebase && sudo nixos-rebuild switch --flake /etc/nixos#$host"
 }
 
 # No args = local
