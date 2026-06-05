@@ -110,7 +110,7 @@ nixos-lab/
 │   │   └── optional/                # Opt-in modules
 │   │       ├── desktop/             # Niri, audio, fonts, apps
 │   │       ├── gaming/              # Steam, GameMode, Vulkan
-│   │       ├── hardware/            # AMD, Bluetooth, Framework
+│   │       ├── hardware/            # AMD, Bluetooth, Framework, DisplayLink (inactive)
 │   │       ├── networking/          # Firewall, NordVPN, SSH, WiFi, WireGuard, Syncthing, sops
 │   │       ├── power/               # Performance, portable, hibernate
 │   │       ├── security/            # LUKS/FIDO2, YubiKey, PAM U2F, sudo
@@ -209,6 +209,7 @@ sudo nix-collect-garbage --delete-older-than 30d
 - **Catppuccin Macchiato**: system-wide theming via Home Manager
 - **WireGuard-only SSH**: `openFirewall = false` on SSH/Mosh services, port 22 opened only on `wg0` interface — no LAN SSH exposure
 - **Two-layer secrets**: git-crypt for build-time values (IPs, public keys), sops-nix for runtime secrets (private keys) — different trust boundaries, appropriate tooling for each
+- **Inactive modules kept in tree**: some optional modules (e.g. `displaylink.nix`, `yubikey/`) are not imported by any host but kept for future use. They have zero impact on builds — add the import to a host's `default.nix` to activate
 
 ## Networking
 
