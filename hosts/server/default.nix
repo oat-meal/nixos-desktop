@@ -43,7 +43,10 @@
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # ZFS ARC 32GB
-  boot.kernelParams = [ "zfs.zfs_arc_max=34359738368" ];
+  boot.kernelParams = [
+    "zfs.zfs_arc_max=34359738368"
+    "spl.spl_hostid=0xdc598b84"  # claim rpool with system hostid at initrd import; clears hostid-mismatch warning
+  ];
 
   # Load amdgpu early for display during LUKS passphrase prompt (RDNA 3.5)
   boot.initrd.kernelModules = [ "amdgpu" ];
