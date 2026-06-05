@@ -238,4 +238,4 @@ IPs and keys are in `secrets/network.nix`. The network topology:
 
 ## License
 
-Personal configuration repository. Reference or adapt freely.
+[MIT](LICENSE)
