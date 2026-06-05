@@ -237,6 +237,27 @@ IPs and keys are in `secrets/network.nix`. The network topology:
 - Kernel hardening with loose rp_filter for WireGuard compatibility
 - NordVPN via WireGuard (wgnord)
 
+## Claude Code Integration
+
+This lab is administered primarily through [Claude Code](https://claude.com/claude-code), Anthropic's CLI agent. Claude handles configuration changes, audits, deployments, and cross-host operations via SSH over the WireGuard mesh.
+
+### How it works
+
+- **CLAUDE.md** provides project context (repo structure, conventions, host access map, secrets workflow). Symlinked to `~/.claude/CLAUDE.md` on each host.
+- **Memory files** (`~/.claude/projects/`) persist knowledge across sessions — audit history, network topology, module patterns, known issues. Synced to all hosts via Syncthing so sessions can resume on any machine.
+- **Deployments**: Claude commits, pushes, then SSH's into each remote host to pull and rebuild. The interactive `deploy.sh` is for manual use; Claude drives each step directly since it can't interact with confirmation prompts.
+- **Audits**: Claude runs the checklist from `docs/audit/README.md` across all hosts in parallel, filters journal errors against `docs/audit/known-states.md`, and records findings in per-host audit docs.
+
+### What Claude does vs doesn't do
+
+| Claude drives | User handles |
+|---|---|
+| Edit config, commit, push | Approve tool calls when prompted |
+| Deploy to all hosts via SSH | Physical access (YubiKey tap, cable check) |
+| Run audit checklists | Router/DHCP configuration |
+| Update docs and memory | Reboot hosts when needed |
+| Diagnose service issues | Confirm destructive operations |
+
 ## License
 
 [MIT](LICENSE)
