@@ -158,6 +158,10 @@
     iotop
     tmux
     mosh
+
+    # AI lab tooling
+    python3
+    uv
   ];
 
   ################################
