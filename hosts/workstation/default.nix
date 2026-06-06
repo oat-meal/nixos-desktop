@@ -77,6 +77,16 @@
   ];
 
   ################################
+  ## Anti-cheat (EAC) override
+  ################################
+  # EasyAntiCheat (Elden Ring Nightreign, etc.) must ptrace the game process
+  # it launches; hardening.nix sets scope 2 (admin-only), which makes EAC fail
+  # module mapping with "Unexpected error (#1)". Scope 1 = descendants-only,
+  # which is enough for EAC and matches hardening.nix's documented intent.
+  # Workstation-only override — server and laptop keep scope 2.
+  boot.kernel.sysctl."kernel.yama.ptrace_scope" = lib.mkForce 1;
+
+  ################################
   ## GameMode override (16-core CPU)
   ################################
   # Ryzen 9950X: reserve 4 cores for system, pin games to 12

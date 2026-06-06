@@ -15,7 +15,8 @@
     # Disable unprivileged eBPF
     "kernel.unprivileged_bpf_disabled" = 1;
 
-    # Restrict ptrace to parent/child processes
+    # Restrict ptrace to admin only (scope 2; CAP_SYS_PTRACE required).
+    # Workstation overrides to scope 1 (descendants-only) so EasyAntiCheat works.
     "kernel.yama.ptrace_scope" = 2;
 
     # Network hardening
