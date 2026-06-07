@@ -31,6 +31,8 @@
 
     # AI lab
     ../common/optional/ai/mcp-host-health.nix
+    ../common/optional/ai/open-webui.nix
+    ../common/optional/ai/searxng.nix
   ];
 
   ################################
@@ -99,6 +101,9 @@
     environmentVariables = {
       OLLAMA_NUM_PARALLEL = "2";
       OLLAMA_KEEP_ALIVE = "30m";
+      # 0.24 defaults the 70B to a 256K context; with NUM_PARALLEL=2 that KV cache
+      # exceeds RAM. Cap to a sane default (per-request num_ctx can still go higher).
+      OLLAMA_CONTEXT_LENGTH = "8192";
     };
   };
 
@@ -169,7 +174,7 @@
       53     # AdGuard DNS
     ];
     # WireGuard-only services (admin/internal)
-    interfaces."wg0".allowedTCPPorts = [ 22 111 2049 3000 11434 ];
+    interfaces."wg0".allowedTCPPorts = [ 22 111 2049 3000 11434 8080 8888 ];
     #                                    SSH NFS  NFS  AdGuard-UI Ollama
     interfaces."wg0".allowedUDPPorts = [ 111 2049 ];
     interfaces."wg0".allowedUDPPortRanges = [
