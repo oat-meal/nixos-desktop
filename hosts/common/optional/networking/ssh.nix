@@ -42,5 +42,9 @@ in
     maxretry = 5;
     bantime = "1h";
     bantime-increment.enable = true;
+    # Never ban trusted WireGuard mesh peers — sshd only listens on wg0, so a
+    # banned mesh host (e.g. from rapid/automated SSH) locks itself out of all
+    # services. The mesh is already encrypted and key-authenticated.
+    ignoreIP = [ "10.100.0.0/24" ];
   };
 }
