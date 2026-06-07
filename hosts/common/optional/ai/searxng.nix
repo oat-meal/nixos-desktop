@@ -18,8 +18,10 @@
       server.bind_address = "10.100.0.2";
       server.port = 8888;
       general.instance_name = "lab-search";
-      # JSON enabled for programmatic use by the future research agent.
+      # JSON enabled for programmatic use by the research tool.
       search.formats = [ "html" "json" ];
+      # Google blocks self-hosted scrapers (403 spam); disable it. Others suffice.
+      engines = [ { name = "google"; disabled = true; } ];
     };
   };
 
