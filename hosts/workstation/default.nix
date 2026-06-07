@@ -22,6 +22,7 @@
 
     # Gaming
     ../common/optional/gaming
+    ../common/optional/ai/eliteintel.nix
 
     # Hardware
     ../common/optional/hardware/amd.nix
