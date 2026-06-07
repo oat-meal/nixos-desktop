@@ -92,7 +92,9 @@
     acceleration = "rocm";
     # Models on a dedicated ZFS dataset (rpool/storage/ollama, recordsize=1M,
     # compression=off) — zfs send/recv to a DAS pool later, same mountpoint.
-    models = "/storage/ollama/models";
+    # Point at the dataset root (already exists + owned by ollama, ZFS-persisted),
+    # so ollama creates blobs/manifests there — no subdir tmpfiles race.
+    models = "/storage/ollama";
     # Shared backend: two players + Open WebUI + agents.
     environmentVariables = {
       OLLAMA_NUM_PARALLEL = "2";
@@ -100,10 +102,10 @@
     };
   };
 
-  # Own the models dataset for the static ollama user (created by zfs out of band).
+  # Own the models dataset for the static ollama user (ZFS persists this; the rule
+  # is a safety net). The dataset is created out of band via `zfs create`.
   systemd.tmpfiles.rules = [
     "d /storage/ollama 0750 ollama ollama - -"
-    "d /storage/ollama/models 0750 ollama ollama - -"
   ];
 
   ################################
