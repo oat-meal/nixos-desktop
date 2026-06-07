@@ -17,8 +17,13 @@
   ################################
   xdg.portal = {
     enable = true;
-    extraPortals = [ pkgs.xdg-desktop-portal-gnome ];
-    config.common.default = [ "gnome" "gtk" ];
+    extraPortals = [ pkgs.xdg-desktop-portal-gnome pkgs.xdg-desktop-portal-gtk ];
+    config.common = {
+      default = [ "gnome" "gtk" ];
+      # GNOME's FileChooser delegates to Nautilus (not installed) and fails silently
+      # (breaks file/folder pickers, e.g. Obsidian). GTK's portal has a built-in chooser.
+      "org.freedesktop.impl.portal.FileChooser" = [ "gtk" ];
+    };
   };
 
   ################################
