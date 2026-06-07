@@ -78,17 +78,15 @@
   ################################
   services.ollama = {
     enable = true;
+    # Stable ollama 0.21.1 ROCm crashes during compute on gfx1151 (Strix Halo),
+    # even with HSA_OVERRIDE. Try unstable 0.24.0 ROCm with native gfx1151 support.
+    # (Fallback ready: pkgs.unstable.ollama-vulkan.)
+    package = pkgs.unstable.ollama-rocm;
     # Bind to WireGuard IP (firewall also restricts to wg0)
     host = "10.100.0.2";
     port = 11434;
     # AMD GPU acceleration (Radeon 8060S, RDNA 3.5, ROCm)
     acceleration = "rocm";
-    environmentVariables = {
-      # gfx1151 (Strix Halo) ROCm detects the GPU but the native HIP kernels
-      # crash during compute ("signal arrived during cgo execution"). Run the
-      # mature gfx1100 (RDNA3) code path instead.
-      HSA_OVERRIDE_GFX_VERSION = "11.0.0";
-    };
   };
 
   ################################
