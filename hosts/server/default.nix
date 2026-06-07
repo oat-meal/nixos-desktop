@@ -28,6 +28,9 @@
 
     # Storage
     ../common/optional/storage/zfs-maintenance.nix
+
+    # AI lab
+    ../common/optional/ai/mcp-host-health.nix
   ];
 
   ################################

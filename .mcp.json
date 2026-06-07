@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "host-health": {
+      "command": "ssh",
+      "args": ["server-nixos", "host-health-mcp"]
+    }
+  }
+}
