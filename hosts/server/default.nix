@@ -83,6 +83,12 @@
     port = 11434;
     # AMD GPU acceleration (Radeon 8060S, RDNA 3.5, ROCm)
     acceleration = "rocm";
+    environmentVariables = {
+      # gfx1151 (Strix Halo) ROCm detects the GPU but the native HIP kernels
+      # crash during compute ("signal arrived during cgo execution"). Run the
+      # mature gfx1100 (RDNA3) code path instead.
+      HSA_OVERRIDE_GFX_VERSION = "11.0.0";
+    };
   };
 
   ################################
