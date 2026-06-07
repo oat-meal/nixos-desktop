@@ -15,9 +15,9 @@
       # Local RAG embeddings via Ollama (no HF downloads).
       RAG_EMBEDDING_ENGINE = "ollama";
       RAG_EMBEDDING_MODEL = "nomic-embed-text";
-      # Auth on; first account becomes admin. Disable signup after creating it.
+      # Auth on; admin account created — signup locked.
       WEBUI_AUTH = "True";
-      ENABLE_SIGNUP = "True";
+      ENABLE_SIGNUP = "False";
       # No telemetry / phone-home.
       ANONYMIZED_TELEMETRY = "False";
       DO_NOT_TRACK = "True";
