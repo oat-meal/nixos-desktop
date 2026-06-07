@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Model council — fan a prompt out to several local models, then have a judge
-model synthesize the best answer (the Odysseus "council" concept).
+"""Model quorum — ask several local models the same question independently, then
+reconcile their answers: agreement raises confidence, disagreement is flagged.
+The point is cross-referencing to reduce hallucinations, not debate.
 
 Stdlib only. Talks to Ollama's HTTP API over the WireGuard mesh.
 
 Usage:
-    OLLAMA_HOST=10.100.0.2:11434 python3 council.py "your question"
-    python3 council.py --members qwen2.5:7b,llama3.3:70b "your question"
+    OLLAMA_HOST=10.100.0.2:11434 python3 quorum.py "your question"
+    python3 quorum.py --members qwen2.5:7b,llama3.3:70b "your question"
 """
 
 import argparse
@@ -35,37 +36,40 @@ def generate(model: str, prompt: str, timeout: int = 300) -> str:
 def ask_member(model: str, question: str) -> tuple[str, str]:
     try:
         return model, generate(model, question)
-    except Exception as e:  # noqa: BLE001 - report, don't crash the council
+    except Exception as e:  # noqa: BLE001 - report, don't crash the quorum
         return model, f"[error: {e}]"
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Local model council")
-    ap.add_argument("question", help="the prompt to put to the council")
+    ap = argparse.ArgumentParser(description="Local model quorum (cross-reference for accuracy)")
+    ap.add_argument("question", help="the prompt to put to the quorum")
     ap.add_argument("--members", help="comma-separated model list",
                     default=",".join(DEFAULT_MEMBERS))
-    ap.add_argument("--judge", default=DEFAULT_JUDGE, help="synthesizer model")
+    ap.add_argument("--judge", default=DEFAULT_JUDGE, help="reconciler model")
     args = ap.parse_args()
 
     members = [m.strip() for m in args.members.split(",") if m.strip()]
-    print(f"== Council ({len(members)} members) on {HOST} ==\n")
+    print(f"== Quorum ({len(members)} members) on {HOST} ==\n")
 
-    # Fan out concurrently.
+    # Ask each member independently, concurrently.
     with ThreadPoolExecutor(max_workers=len(members)) as pool:
         answers = list(pool.map(lambda m: ask_member(m, args.question), members))
 
     for model, ans in answers:
         print(f"--- {model} ---\n{ans}\n")
 
-    # Judge synthesizes.
+    # Reconcile: cross-reference the independent answers, flag disagreement.
     transcript = "\n\n".join(f"### Answer from {m}:\n{a}" for m, a in answers)
     judge_prompt = (
         f"Question:\n{args.question}\n\n"
-        f"Several models answered below. Synthesize the single best, most accurate "
-        f"answer. Resolve disagreements, drop anything wrong, and be concise.\n\n"
-        f"{transcript}\n\n### Synthesized best answer:"
+        f"{len(members)} models answered the question independently below. Cross-reference "
+        f"them and produce the most accurate answer:\n"
+        f"- Keep only claims corroborated across models or clearly correct.\n"
+        f"- Explicitly flag where the models DISAGREE (treat those as low-confidence).\n"
+        f"- Drop anything unsupported or contradicted — do not invent.\n\n"
+        f"{transcript}\n\n### Reconciled answer (note any disagreements):"
     )
-    print(f"== Synthesis (judge: {args.judge}) ==\n")
+    print(f"== Reconciled answer (judge: {args.judge}) ==\n")
     try:
         print(generate(args.judge, judge_prompt))
     except Exception as e:  # noqa: BLE001
