@@ -43,12 +43,26 @@ let
     name = "eliteintel";
     runtimeInputs = [ temurin-bin coreutils ];
     text = ''
+      # Java/AWT renders blank under tiling Wayland WMs (niri) without this.
+      export _JAVA_AWT_WM_NONREPARENTING=1
+
       assets=${assets}/share/eliteintel
-      rundir="''${XDG_DATA_HOME:-$HOME/.local/share}/eliteintel"
+      # The app hardcodes this as its data home (config, ed-journal, ed-bindings).
+      rundir="$HOME/.var/app/elite.intel.app"
       mkdir -p "$rundir"
       for a in elite_intel.jar native parakeet tts; do
         ln -sfn "$assets/$a" "$rundir/$a"
       done
+
+      # Auto-link the Elite Dangerous journal (+ bindings if present) from the
+      # Proton prefix, so the journal monitor works without manual setup.
+      for lib in "$HOME/.local/share/Steam" /storage/steam; do
+        jp="$lib/steamapps/compatdata/359320/pfx/drive_c/users/steamuser/Saved Games/Frontier Developments/Elite Dangerous"
+        [ -d "$jp" ] && ln -sfn "$jp" "$rundir/ed-journal"
+        bp="$lib/steamapps/compatdata/359320/pfx/drive_c/users/steamuser/AppData/Local/Frontier Developments/Elite Dangerous/Options/Bindings"
+        [ -d "$bp" ] && ln -sfn "$bp" "$rundir/ed-bindings"
+      done
+
       cd "$rundir"
       exec java -Xmx6g -Djava.library.path="$rundir/native" -jar "$rundir/elite_intel.jar" "$@"
     '';
