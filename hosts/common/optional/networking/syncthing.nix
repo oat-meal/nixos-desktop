@@ -14,13 +14,6 @@ let
 
   # All hosts except this one
   otherHosts = lib.filterAttrs (name: _: name != hostname) devices;
-
-  # AI-lab Obsidian vault: master lives on the server's /storage (snapshotted);
-  # clients keep an editable copy in ~/Documents.
-  vaultPath =
-    if hostname == "server-nixos"
-    then "/storage/ai-lab-vault"
-    else "/home/${secrets.user}/Documents/ai-lab-vault";
 in
 {
   services.syncthing = {
@@ -54,15 +47,10 @@ in
           devices = lib.attrNames otherHosts;
           ignorePerms = false;
         };
-        "ai-lab-vault" = {
-          path = vaultPath;
-          devices = lib.attrNames otherHosts;
-          versioning = {
-            type = "simple";
-            params.keep = "5";
-          };
-          ignorePerms = false;
-        };
+        # NOTE: the AI-lab Obsidian docs moved OFF Syncthing to an on-prem git
+        # remote (server:/storage/git/ai-lab-vault.git) for version history +
+        # merge-based conflict handling. Do not re-add it here (Syncthing + git
+        # on the same folder fight). See Obsidian [[Decisions]].
       };
 
       options = {
