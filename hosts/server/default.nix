@@ -78,16 +78,33 @@
   ################################
   services.ollama = {
     enable = true;
-    # Stable ollama 0.21.1 ROCm crashes during compute on gfx1151 (Strix Halo),
-    # even with HSA_OVERRIDE. Try unstable 0.24.0 ROCm with native gfx1151 support.
-    # (Fallback ready: pkgs.unstable.ollama-vulkan.)
+    # Unstable 0.24.0 ROCm — native gfx1151 support (stable 0.21.1 crashed during
+    # compute on Strix Halo). Fallback ready: pkgs.unstable.ollama-vulkan.
     package = pkgs.unstable.ollama-rocm;
+    # Static user (not DynamicUser) so the dedicated models dataset has stable
+    # ownership and can be migrated to a future DAS pool.
+    user = "ollama";
+    group = "ollama";
     # Bind to WireGuard IP (firewall also restricts to wg0)
     host = "10.100.0.2";
     port = 11434;
     # AMD GPU acceleration (Radeon 8060S, RDNA 3.5, ROCm)
     acceleration = "rocm";
+    # Models on a dedicated ZFS dataset (rpool/storage/ollama, recordsize=1M,
+    # compression=off) — zfs send/recv to a DAS pool later, same mountpoint.
+    models = "/storage/ollama/models";
+    # Shared backend: two players + Open WebUI + agents.
+    environmentVariables = {
+      OLLAMA_NUM_PARALLEL = "2";
+      OLLAMA_KEEP_ALIVE = "30m";
+    };
   };
+
+  # Own the models dataset for the static ollama user (created by zfs out of band).
+  systemd.tmpfiles.rules = [
+    "d /storage/ollama 0750 ollama ollama - -"
+    "d /storage/ollama/models 0750 ollama ollama - -"
+  ];
 
   ################################
   ## Jellyfin — media server
