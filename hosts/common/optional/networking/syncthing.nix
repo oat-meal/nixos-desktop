@@ -14,6 +14,13 @@ let
 
   # All hosts except this one
   otherHosts = lib.filterAttrs (name: _: name != hostname) devices;
+
+  # AI-lab Obsidian vault: master lives on the server's /storage (snapshotted);
+  # clients keep an editable copy in ~/Documents.
+  vaultPath =
+    if hostname == "server-nixos"
+    then "/storage/ai-lab-vault"
+    else "/home/${secrets.user}/Documents/ai-lab-vault";
 in
 {
   services.syncthing = {
@@ -45,6 +52,15 @@ in
         "git-crypt-keys" = {
           path = "/home/${secrets.user}/.config/git-crypt";
           devices = lib.attrNames otherHosts;
+          ignorePerms = false;
+        };
+        "ai-lab-vault" = {
+          path = vaultPath;
+          devices = lib.attrNames otherHosts;
+          versioning = {
+            type = "simple";
+            params.keep = "5";
+          };
           ignorePerms = false;
         };
       };
