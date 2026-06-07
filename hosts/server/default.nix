@@ -33,6 +33,7 @@
     ../common/optional/ai/mcp-host-health.nix
     ../common/optional/ai/open-webui.nix
     ../common/optional/ai/searxng.nix
+    ../common/optional/ai/chromadb.nix
   ];
 
   ################################
@@ -174,7 +175,7 @@
       53     # AdGuard DNS
     ];
     # WireGuard-only services (admin/internal)
-    interfaces."wg0".allowedTCPPorts = [ 22 111 2049 3000 11434 8080 8888 ];
+    interfaces."wg0".allowedTCPPorts = [ 22 111 2049 3000 11434 8080 8888 8000 ];
     #                                    SSH NFS  NFS  AdGuard-UI Ollama
     interfaces."wg0".allowedUDPPorts = [ 111 2049 ];
     interfaces."wg0".allowedUDPPortRanges = [
