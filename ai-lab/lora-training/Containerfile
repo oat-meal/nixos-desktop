@@ -1,0 +1,22 @@
+# LoRA trainer image (gfx1151) — kohya sd-scripts on the proven ROCm/PyTorch base.
+# One-off training jobs, run ad-hoc with rootful podman (NOT a declarative service).
+#
+# Build:
+#   cd /etc/nixos/ai-lab/lora-training && sudo podman build -t localhost/lora-trainer:v1 .
+#
+# Reuses the same gfx1151 torch/ROCm base as ComfyUI (known-good on this hardware).
+# kohya's requirements are installed with torch/torchvision/xformers FILTERED OUT so
+# they can't clobber the working ROCm torch (xformers has no ROCm wheel anyway — we
+# use --sdpa). The final RUN hard-asserts torch is still the ROCm build.
+
+FROM docker.io/ignatberesnev/comfyui-gfx1151@sha256:a38260b56a94fdf5aa9f951a96a73ef1987b70ebcbd4757447708a756a67abc0
+
+RUN git clone --depth 1 https://github.com/kohya-ss/sd-scripts /opt/sd-scripts
+WORKDIR /opt/sd-scripts
+
+# Install kohya deps but never let pip touch torch/torchvision (ROCm) or pull xformers.
+RUN grep -ivE '^(torch|torchvision|xformers)([=<>! ]|$)' requirements.txt > /tmp/req.txt \
+    && python3 -m pip install --break-system-packages --no-cache-dir -r /tmp/req.txt
+
+# Safety net: fail the build loudly if torch got replaced by a non-ROCm wheel.
+RUN python3 -c "import torch; assert 'rocm' in torch.__version__, 'TORCH CLOBBERED: '+torch.__version__; print('torch OK:', torch.__version__)"

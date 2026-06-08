@@ -1,0 +1,38 @@
+# kohya sd-scripts — SDXL LoRA (anime style) on Illustrious, tuned for gfx1151/ROCm.
+# Training args only; resolution/bucketing/dataset live in dataset.toml.
+# Starting point — tune network_dim / lr / epochs after the first run if needed.
+
+pretrained_model_name_or_path = "/base/Illustrious-XL-v1.0.safetensors"
+output_dir = "/data/output"
+output_name = "oatstyle"
+save_model_as = "safetensors"
+save_precision = "bf16"
+mixed_precision = "bf16"
+
+# LoRA network
+network_module = "networks.lora"
+network_dim = 32       # rank; 16-32 typical for a style
+network_alpha = 16
+
+# Optimizer — AdamW (NOT 8-bit: bitsandbytes doesn't work on ROCm). Memory is plenty.
+optimizer_type = "AdamW"
+learning_rate = 1e-4
+unet_lr = 1e-4
+text_encoder_lr = 5e-5
+lr_scheduler = "cosine_with_restarts"
+lr_warmup_steps = 100
+
+# Schedule — ~10 epochs over <1000 imgs lands a few thousand steps (good for a style).
+max_train_epochs = 10
+train_batch_size = 2
+save_every_n_epochs = 2          # intermediate LoRAs so you can compare strengths
+
+# Memory / AMD-safe attention
+gradient_checkpointing = true
+cache_latents = true
+cache_latents_to_disk = true
+sdpa = true                       # scaled-dot-product attn (no xformers on ROCm)
+
+max_data_loader_n_workers = 4
+seed = 42
+logging_dir = "/data/logs"

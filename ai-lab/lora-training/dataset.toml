@@ -1,0 +1,20 @@
+# kohya dataset config — points at the curated set; bucketing handles mixed
+# resolutions/aspect ratios so you don't pre-resize. Captions come from the .txt
+# files (WD14 tags + the 'oatstyle' trigger prepended).
+
+[general]
+caption_extension = ".txt"
+shuffle_caption = true
+keep_tokens = 1            # keep the first token ('oatstyle') fixed when shuffling
+
+[[datasets]]
+resolution = 1024
+batch_size = 2
+enable_bucket = true
+min_bucket_reso = 512
+max_bucket_reso = 2048
+bucket_no_upscale = true   # don't upscale small images, just bucket them
+
+  [[datasets.subsets]]
+  image_dir = "/data/curated"
+  num_repeats = 1          # raise to 2-3 if the final set is small (<~250)
