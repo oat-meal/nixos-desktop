@@ -40,8 +40,10 @@ sudo podman run --rm -it \
 ```
 python3 /config/curate.py /data/raw /data/curated
 ```
-Prints e.g. `scanned=900 kept=620 dropped_small=180 dropped_dup=95 dropped_bad=5`.
-If `kept` < ~250, bump `num_repeats` to 2-3 in `dataset.toml`.
+Dedups, drops too-small/corrupt, and **samples a balanced subset** (up to
+`max_per_folder` per pose folder, capped to `target_total`). Defaults: target 800,
+max 3/folder. Override: `... curate.py /data/raw /data/curated 600 2`.
+Prints e.g. `scanned=6345 valid_after_filter=5900 groups=468 final_kept=800 …`.
 
 ### Step 3 — caption + trigger  (`<COMMAND>` =)
 ```
