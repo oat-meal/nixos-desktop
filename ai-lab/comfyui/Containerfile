@@ -11,12 +11,14 @@
 # Build out-of-band with rootful podman so the (root) oci-containers service can see
 # the resulting image:
 #
-#   cd /etc/nixos/ai-lab/comfyui && sudo podman build -t localhost/comfyui-gfx1151-impact:v0.2-1 .
+#   cd /etc/nixos/ai-lab/comfyui && sudo podman build -t localhost/comfyui-gfx1151-impact:v0.2-2 .
 #
 # Then deploy the server and `sudo systemctl restart podman-comfyui`. Bump the tag
 # (…-2, …-3) when changing deps so the service picks up the new image.
 
-FROM docker.io/ignatberesnev/comfyui-gfx1151:v0.2
+# Base pinned by digest (== upstream :v0.2) for reproducibility — a moving tag could
+# change under us; the digest cannot.
+FROM docker.io/ignatberesnev/comfyui-gfx1151@sha256:a38260b56a94fdf5aa9f951a96a73ef1987b70ebcbd4757447708a756a67abc0
 
 # Impact Pack + Impact Subpack (detectors) + Ultimate SD Upscale dependencies.
 # torch / transformers / numpy / scipy / matplotlib are already in the base venv.
@@ -28,3 +30,20 @@ RUN python3 -m pip install --break-system-packages --no-cache-dir \
       segment-anything \
       ultralytics \
       "git+https://github.com/facebookresearch/sam2"
+
+# ControlNet preprocessors (comfyui_controlnet_aux). CPU onnxruntime (this box is
+# AMD/ROCm — onnxruntime-gpu is NVIDIA-only). mediapipe is intentionally OMITTED: it
+# can force a numpy<2 downgrade that breaks torch, and OpenPose/DWPose/depth/canny/
+# lineart don't need it (only the mediapipe-face preprocessor does).
+RUN python3 -m pip install --break-system-packages --no-cache-dir \
+      onnxruntime \
+      einops \
+      fvcore \
+      yapf \
+      ftfy \
+      addict \
+      yacs \
+      "trimesh[easy]" \
+      albumentations \
+      scikit-learn \
+      importlib_metadata
