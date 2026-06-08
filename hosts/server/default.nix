@@ -107,6 +107,9 @@
       # 0.24 defaults the 70B to a 256K context; with NUM_PARALLEL=2 that KV cache
       # exceeds RAM. Cap to a sane default (per-request num_ctx can still go higher).
       OLLAMA_CONTEXT_LENGTH = "8192";
+      # Flash attention: faster attention + smaller KV cache on ROCm. Speeds up
+      # generation and lets the warm model use less VRAM.
+      OLLAMA_FLASH_ATTENTION = "1";
     };
   };
 

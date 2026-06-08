@@ -38,7 +38,18 @@ rebuild_remote() {
   # subsequent user-run git on that host. Only nixos-rebuild needs sudo.
   # -n keeps ssh from consuming this script's stdin (the confirm prompts),
   # so the loop stays correct under both interactive and piped invocation.
-  ssh -n "$host" "git -C /etc/nixos pull --rebase && sudo nixos-rebuild switch --flake /etc/nixos#$host"
+  #
+  # Guard: abort if /etc/nixos has any non-oat-owned file (the tell-tale of a
+  # prior `sudo git`), since the upcoming `git pull` would fail mid-deploy.
+  # Surface a clear remediation instead of a cryptic git error.
+  ssh -n "$host" "
+    if [ -n \"\$(find /etc/nixos -xdev ! -user oat -print -quit 2>/dev/null)\" ]; then
+      echo 'ERROR: /etc/nixos has non-oat-owned files (likely a prior sudo git).'
+      echo 'Fix on $host:  sudo chown -R oat:users /etc/nixos'
+      exit 1
+    fi
+    git -C /etc/nixos pull --rebase && sudo nixos-rebuild switch --flake /etc/nixos#$host
+  "
 }
 
 # No args = local
