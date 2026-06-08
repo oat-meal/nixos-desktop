@@ -18,5 +18,8 @@ WORKDIR /opt/sd-scripts
 RUN grep -ivE '^(torch|torchvision|xformers)([=<>! ]|$)' requirements.txt > /tmp/req.txt \
     && python3 -m pip install --break-system-packages --no-cache-dir -r /tmp/req.txt
 
+# WD14 tagger (captioning) needs onnxruntime — CPU build (AMD has no GPU provider).
+RUN python3 -m pip install --break-system-packages --no-cache-dir onnxruntime onnx
+
 # Safety net: fail the build loudly if torch got replaced by a non-ROCm wheel.
 RUN python3 -c "import torch; assert 'rocm' in torch.__version__, 'TORCH CLOBBERED: '+torch.__version__; print('torch OK:', torch.__version__)"
