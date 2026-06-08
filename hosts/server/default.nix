@@ -35,6 +35,7 @@
     ../common/optional/ai/searxng.nix
     ../common/optional/ai/chromadb.nix
     ../common/optional/ai/lab-tools.nix
+    ../common/optional/ai/lab-api.nix
     ../common/optional/ai/comfyui.nix
   ];
 
