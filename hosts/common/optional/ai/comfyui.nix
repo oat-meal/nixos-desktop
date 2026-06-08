@@ -17,7 +17,7 @@
     # detailer/upscaler custom-node Python deps baked into its venv. Built out-of-band
     # (rootful podman) — see ai-lab/comfyui/Containerfile for the build command. The
     # localhost/ prefix keeps podman from trying to pull it from a registry.
-    image = "localhost/comfyui-gfx1151-impact:v0.2-1";
+    image = "localhost/comfyui-gfx1151-impact:v0.2-2";
     ports = [ "10.100.0.2:8188:8188" ]; # wg0 only
     volumes = [ "/storage/comfyui:/opt/ComfyUI" ]; # models, output, custom nodes persist here
     environment = {
