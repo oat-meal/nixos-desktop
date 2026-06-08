@@ -1,0 +1,30 @@
+# Derived ComfyUI image (gfx1151) — bakes the detailer/upscaler custom-node Python
+# dependencies into the upstream image's venv (/opt/venv).
+#
+# Why an image and not a runtime install: the oci-containers service recreates the
+# container on every restart (podman rm -f + fresh podman run), discarding its
+# writable layer. Deps pip-installed into a running container therefore do NOT
+# survive a restart — they must be in the image. Custom-node *code* and models live
+# in the /storage/comfyui volume and persist independently; only their Python deps
+# are baked here.
+#
+# Build out-of-band with rootful podman so the (root) oci-containers service can see
+# the resulting image:
+#
+#   cd /etc/nixos/ai-lab/comfyui && sudo podman build -t localhost/comfyui-gfx1151-impact:v0.2-1 .
+#
+# Then deploy the server and `sudo systemctl restart podman-comfyui`. Bump the tag
+# (…-2, …-3) when changing deps so the service picks up the new image.
+
+FROM docker.io/ignatberesnev/comfyui-gfx1151:v0.2
+
+# Impact Pack + Impact Subpack (detectors) + Ultimate SD Upscale dependencies.
+# torch / transformers / numpy / scipy / matplotlib are already in the base venv.
+RUN python3 -m pip install --break-system-packages --no-cache-dir \
+      opencv-python-headless \
+      scikit-image \
+      piexif \
+      dill \
+      segment-anything \
+      ultralytics \
+      "git+https://github.com/facebookresearch/sam2"

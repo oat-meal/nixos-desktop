@@ -9,11 +9,15 @@
   virtualisation.podman.enable = true;
   virtualisation.oci-containers.backend = "podman";
 
-  # The image is ~11 GB; give the first-run pull room (default ~5m is too short).
+  # The image is ~11 GB; give the first-run pull/build room (default ~5m is too short).
   systemd.services.podman-comfyui.serviceConfig.TimeoutStartSec = lib.mkForce "30min";
 
   virtualisation.oci-containers.containers.comfyui = {
-    image = "docker.io/ignatberesnev/comfyui-gfx1151:v0.2"; # no :latest tag exists; TODO pin by digest
+    # Locally-derived image: upstream ignatberesnev/comfyui-gfx1151:v0.2 + the
+    # detailer/upscaler custom-node Python deps baked into its venv. Built out-of-band
+    # (rootful podman) — see ai-lab/comfyui/Containerfile for the build command. The
+    # localhost/ prefix keeps podman from trying to pull it from a registry.
+    image = "localhost/comfyui-gfx1151-impact:v0.2-1";
     ports = [ "10.100.0.2:8188:8188" ]; # wg0 only
     volumes = [ "/storage/comfyui:/opt/ComfyUI" ]; # models, output, custom nodes persist here
     environment = {
