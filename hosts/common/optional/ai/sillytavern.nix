@@ -14,9 +14,11 @@ let
     cp "$src" $out
     chmod +w $out
     ${pkgs.gnused}/bin/sed -i \
+      -e 's/^listen:.*/listen: true/' \
       -e 's/^whitelistMode:.*/whitelistMode: false/' \
       -e 's/^securityOverride:.*/securityOverride: true/' \
       $out
+    grep -q '^listen:' $out          || printf '\nlisten: true\n'          >> $out
     grep -q '^securityOverride:' $out || printf '\nsecurityOverride: true\n' >> $out
     grep -q '^whitelistMode:' $out  || printf '\nwhitelistMode: false\n'  >> $out
   '';
@@ -25,8 +27,8 @@ in
   services.sillytavern = {
     enable = true;
     package = st;
-    listen = true;
-    listenAddressIPv4 = "10.100.0.2"; # wg0
+    # listen:true is set in the config (CLI flags didn't override it on 1.13); ST then
+    # binds 0.0.0.0:8002, but the firewall opens 8002 ONLY on wg0 → mesh-only in practice.
     port = 8002; # 8000 = ChromaDB, 8001 reserved, 8002 free
     configFile = "${stConfig}"; # string path (tmpfiles arg requires a string)
   };
