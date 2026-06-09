@@ -6,11 +6,12 @@
 { pkgs, ... }:
 
 let
-  st = pkgs.unstable.sillytavern; # 1.18.x
+  st = pkgs.sillytavern; # stable 1.13.x — matches the nixpkgs module's expected layout
   # Start from the package's default config.yaml and only relax the network guard —
-  # all other keys stay at upstream defaults.
+  # all other keys stay at upstream defaults. (find handles either config.yaml location.)
   stConfig = pkgs.runCommand "sillytavern-config.yaml" { } ''
-    cp ${st}/lib/node_modules/sillytavern/config.yaml $out
+    src=$(${pkgs.findutils}/bin/find ${st}/lib/node_modules/sillytavern -maxdepth 2 -name config.yaml | head -1)
+    cp "$src" $out
     chmod +w $out
     ${pkgs.gnused}/bin/sed -i \
       -e 's/^whitelistMode:.*/whitelistMode: false/' \
