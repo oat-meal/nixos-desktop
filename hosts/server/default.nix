@@ -162,7 +162,7 @@
     exports = let
       secrets = import ../../secrets/network.nix;
     in ''
-      /storage  ${secrets.wireguard.meshSubnet}(rw,sync,no_subtree_check,root_squash)
+      /storage  ${secrets.wireguard.meshSubnet}(rw,sync,no_subtree_check,root_squash,crossmnt)
     '';
   };
 
