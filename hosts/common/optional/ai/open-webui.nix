@@ -23,6 +23,10 @@
       DO_NOT_TRACK = "True";
       SCARF_NO_ANALYTICS = "True";
       HF_HUB_OFFLINE = "1";
+      # No outbound at all: no community sharing, no update pings, no usage stats.
+      ENABLE_COMMUNITY_SHARING = "False";
+      ENABLE_VERSION_UPDATE_CHECK = "False";
+      ENABLE_PUBLIC_ACTIVE_USERS_COUNT = "False";
     };
   };
 }
