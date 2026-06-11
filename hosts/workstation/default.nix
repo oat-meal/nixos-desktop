@@ -71,6 +71,13 @@
     "pci=pcie_bus_perf"
     "usbcore.autosuspend=-1"
     "pcie_aspm=off"
+    # Cap ZFS ARC at 16 GB. Default (uncapped ≈ 50% RAM) held ~34 GB of the 60 GB
+    # and starved games — a Steam update's write/decompress burst pushed RAM into
+    # swap and stalled the desktop. 16 GB cache leaves ~44 GB for games.
+    "zfs.zfs_arc_max=17179869184"
+    # Don't penalize bus-locking threads. The kernel was rate-limiting Steam's job
+    # threads (CJobMgr bus_lock traps) during the update, causing brief hitches.
+    "split_lock_detect=off"
   ];
 
   boot.kernelModules = [
