@@ -6,3 +6,6 @@ result
 
 # Experimental packages - not tracked in git
 modules/experimental-packages.nix
+
+# SillyTavern character cards - kept private (on-prem only, never pushed to public repo)
+ai-lab/sillytavern/characters/
