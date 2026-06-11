@@ -32,7 +32,9 @@ automatically vs. what would I restore from on-prem backup?*
   (`ai-lab/sillytavern/characters/`), ComfyUI workflow JSONs (`ai-lab/comfyui/workflows/`),
   prompts/personas, generated images, model weights, RAG corpora, OWUI/ST databases, the
   LoRA dataset, the Obsidian vault. These live on `/storage` (ZFS-snapshotted), service data
-  dirs, or the on-prem private git (`server:/storage/git/`) — never GitHub.
+  dirs, or the on-prem **private** git — never GitHub:
+  - `server:/storage/git/lab-content.git` — cards, ComfyUI workflows, prompts (clone: `~/Documents/lab-content`)
+  - `server:/storage/git/ai-lab-vault.git` — Obsidian system-docs vault (clone: `~/Documents/ai-lab-vault`)
 
 Enforced by `.gitignore` + a tracked pre-commit hook (`.githooks/pre-commit`). The hook is
 NOT auto-active per clone — enable it once after cloning: `git config core.hooksPath .githooks`
