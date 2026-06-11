@@ -18,6 +18,27 @@ Run `hostname` at conversation start to determine context.
 - **Channel**: nixpkgs-25.11 stable, selective unstable overlay (`pkgs.unstable.<pkg>`)
 - **Secrets**: `secrets/network.nix` encrypted via git-crypt (see Secrets section)
 
+## What belongs in this repo (infra vs content)
+
+This repo is **PUBLIC and infrastructure-only**: the recipe to rebuild the lab, not its
+contents. The test: *if I rebuilt on bare hardware from this flake, what should reappear
+automatically vs. what would I restore from on-prem backup?*
+
+- **Belongs here (infrastructure):** all `*.nix`, `flake.nix`, host/module configs, and the
+  tool **code** Nix builds (`ai-lab/{quorum,rag,research}/*.py`, `ai-lab/api/server.py`,
+  `ai-lab/mcp/.../server.py`, `ai-lab/eliteintel/package.nix`, `ai-lab/comfyui/Containerfile`,
+  `ai-lab/lora-training/` toolkit). No secrets (git-crypt/sops handle those), no personal data.
+- **Does NOT belong here (content/data → private, on-prem):** character cards
+  (`ai-lab/sillytavern/characters/`), ComfyUI workflow JSONs (`ai-lab/comfyui/workflows/`),
+  prompts/personas, generated images, model weights, RAG corpora, OWUI/ST databases, the
+  LoRA dataset, the Obsidian vault. These live on `/storage` (ZFS-snapshotted), service data
+  dirs, or the on-prem private git (`server:/storage/git/`) — never GitHub.
+
+Enforced by `.gitignore` + a tracked pre-commit hook (`.githooks/pre-commit`). The hook is
+NOT auto-active per clone — enable it once after cloning: `git config core.hooksPath .githooks`
+(see "Unlocking git-crypt after a fresh clone"). Override for a genuine infra file with
+`git commit --no-verify`.
+
 ## Structure
 
 ```

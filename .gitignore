@@ -7,5 +7,18 @@ result
 # Experimental packages - not tracked in git
 modules/experimental-packages.nix
 
-# SillyTavern character cards - kept private (on-prem only, never pushed to public repo)
+# Lab CONTENT — kept private/on-prem, never pushed to this public infra repo.
+# (See CLAUDE.md "What belongs in this repo". A pre-commit hook also guards these.)
 ai-lab/sillytavern/characters/
+ai-lab/comfyui/workflows/
+# Content file types, wherever they land
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gguf
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.onnx

@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Infra/content boundary guard — see CLAUDE.md "What belongs in this repo".
+# This repo is PUBLIC and holds infrastructure only (Nix config + the tool code Nix
+# builds). It must never contain lab *content/data*: character cards, prompts/personas,
+# generated images, model weights, ComfyUI workflow JSONs, etc. Those live on-prem.
+#
+# This hook blocks staged files that look like content, by extension or by path.
+# Enable per clone with:  git config core.hooksPath .githooks
+# Intentional override (rare, think twice):  git commit --no-verify
+
+set -euo pipefail
+
+# Content file extensions that should never be in this repo.
+ext_re='\.(png|jpe?g|webp|gif|bmp|tiff?|gguf|safetensors|ckpt|pt|pth|bin|onnx|mp4|mov|wav|mp3)$'
+# Content paths (kept private even though the file types vary).
+path_re='^ai-lab/(sillytavern/characters|comfyui/workflows)/'
+
+blocked=""
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  if printf '%s\n' "$f" | grep -qiE "$ext_re" || printf '%s\n' "$f" | grep -qE "$path_re"; then
+    blocked="$blocked  $f
+"
+  fi
+done < <(git diff --cached --name-only --diff-filter=AM)
+
+if [ -n "$blocked" ]; then
+  cat >&2 <<EOF
+✖ pre-commit: refusing to commit lab CONTENT to the public infra repo.
+
+Blocked files:
+$blocked
+This repo is infrastructure only. Cards, prompts, images, model weights and
+ComfyUI workflows belong on-prem (ComfyUI volume / on-prem private git / data dirs).
+See CLAUDE.md → "What belongs in this repo".
+
+If this file is genuinely infrastructure, commit with:  git commit --no-verify
+EOF
+  exit 1
+fi
+exit 0
