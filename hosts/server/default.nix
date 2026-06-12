@@ -39,6 +39,7 @@
     ../common/optional/ai/comfyui.nix
     ../common/optional/ai/sillytavern.nix
     ../common/optional/ai/dashboard.nix
+    ../common/optional/ai/kokoro.nix
   ];
 
   ################################
