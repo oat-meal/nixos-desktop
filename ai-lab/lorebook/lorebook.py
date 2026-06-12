@@ -80,11 +80,13 @@ def build_user_prompt(world, count):
     return (
         f"WORLD BRIEF:\n{world}\n\n"
         f"Produce worldbuilding entries for this setting:\n"
-        f'- Exactly 2 entries with category "core": one a 1-3 sentence PREMISE (the setting '
-        f"plus the central situation/hook), and one the TONE & RULES (mood, plus what is "
-        f"possible or forbidden in this world). Core entries are always-on — keep them short.\n"
+        f'- Exactly 2 entries with category "core": the first titled exactly "World Premise" '
+        f"(a 1-3 sentence premise — the setting plus the central situation/hook), the second "
+        f'titled exactly "Tone & Rules" (mood, plus what is possible or forbidden in this '
+        f"world). Core entries are always-on — keep them short.\n"
         f'- {count} more entries across categories "location", "faction", "character", '
-        f'"item" (and "lore" for concepts). Each is a distinct, named element of the world.\n\n'
+        f'"item" (and "lore" for concepts). Each is a distinct, named element of the world. '
+        f"Do NOT create an entry for {{{{user}}}} themselves.\n\n"
         f"For every entry provide:\n"
         f"- title: a short label (the element's name)\n"
         f"- keys: 2-4 trigger words a player might type that should surface this entry "
@@ -163,6 +165,16 @@ def main():
         items = gen["entries"]
     except (json.JSONDecodeError, KeyError, TypeError) as e:
         sys.exit(f"error: model returned unusable output ({e}). Try a bigger model (e.g. qwen2.5-coder:32b) or rerun.")
+
+    # Fallback titles for core entries if the model left them blank (so they don't show
+    # as a nameless row in SillyTavern's list).
+    core_fallback = ["World Premise", "Tone & Rules"]
+    core_seen = 0
+    for e in items:
+        if e.get("category") == "core" and not e.get("title", "").strip():
+            e["title"] = core_fallback[core_seen] if core_seen < len(core_fallback) else "Core"
+        if e.get("category") == "core":
+            core_seen += 1
 
     entries = {str(i): wrap_entry(i, e) for i, e in enumerate(items)}
     book = json.dumps({"entries": entries}, indent=2, ensure_ascii=False)
