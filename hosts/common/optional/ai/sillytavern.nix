@@ -12,7 +12,12 @@ let
   # imports, so it installs as a local third-party extension in the writable data dir.
   worldweaver = ../../../../ai-lab/sillytavern/extensions/worldweaver;
   installWorldweaver = pkgs.writeShellScript "install-worldweaver" ''
-    d="/var/lib/SillyTavern/data/default-user/extensions/third-party/worldweaver"
+    ext="/var/lib/SillyTavern/data/default-user/extensions"
+    # user extensions live directly in extensions/<name> (discover reads subfolders as
+    # third-party/<name>); remove the mis-placed v1 copy under an extra third-party/ dir.
+    ${pkgs.coreutils}/bin/rm -rf "$ext/third-party/worldweaver"
+    ${pkgs.coreutils}/bin/rmdir "$ext/third-party" 2>/dev/null || true
+    d="$ext/worldweaver"
     ${pkgs.coreutils}/bin/mkdir -p "$d"
     ${pkgs.coreutils}/bin/cp -f ${worldweaver}/manifest.json ${worldweaver}/index.js "$d/"
   '';
