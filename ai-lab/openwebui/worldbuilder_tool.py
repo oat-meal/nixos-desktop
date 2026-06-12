@@ -95,12 +95,11 @@ def _ollama_entries(ollama_url, model, brief, count):
     with urllib.request.urlopen(req, timeout=600) as r:
         content = json.load(r)["message"]["content"]
     items = json.loads(content)["entries"]
-    # name core entries if the model left them blank
-    fallback, seen = ["World Premise", "Tone & Rules"], 0
+    # give core entries canonical titles (the model often lowercases or omits them)
+    canonical, seen = ["World Premise", "Tone & Rules"], 0
     for e in items:
         if e.get("category") == "core":
-            if not e.get("title", "").strip():
-                e["title"] = fallback[seen] if seen < len(fallback) else "Core"
+            e["title"] = canonical[seen] if seen < len(canonical) else "Core"
             seen += 1
     return items
 
