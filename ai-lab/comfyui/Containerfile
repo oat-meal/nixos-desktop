@@ -11,7 +11,7 @@
 # Build out-of-band with rootful podman so the (root) oci-containers service can see
 # the resulting image:
 #
-#   cd /etc/nixos/ai-lab/comfyui && sudo podman build -t localhost/comfyui-gfx1151-impact:v0.2-2 .
+#   cd /etc/nixos/ai-lab/comfyui && sudo podman build -t localhost/comfyui-gfx1151-impact:v0.2-3 .
 #
 # Then deploy the server and `sudo systemctl restart podman-comfyui`. Bump the tag
 # (…-2, …-3) when changing deps so the service picks up the new image.
@@ -47,3 +47,11 @@ RUN python3 -m pip install --break-system-packages --no-cache-dir \
       albumentations \
       scikit-learn \
       importlib_metadata
+
+# IP-Adapter FaceID: insightface for face detection + identity embeddings, giving strong
+# single-subject face consistency (IPAdapterFaceID / IPAdapterInsightFaceLoader nodes).
+# Wheel-installed (no compile expected); onnxruntime(CPU) is already present above. The 2D
+# FaceAnalysis path we use is onnxruntime-based, so numpy 2.x stays intact (verify after build).
+RUN python3 -m pip install --break-system-packages --no-cache-dir \
+      insightface \
+      onnx
