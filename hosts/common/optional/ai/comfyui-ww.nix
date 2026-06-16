@@ -36,8 +36,10 @@
     extraOptions = [
       "--device=/dev/kfd"
       "--device=/dev/dri"            # full DRI — passing only one render node breaks HIP topology enumeration
-      "--group-add=video"
-      "--group-add=render"
+      # No --group-add: the yanwk/openSUSE base image has no 'video'/'render' group, so
+      # podman's name lookup fails ("Unable to find group video"). The GPU device nodes
+      # are world-rw (666), so the container needs no supplementary group to use them
+      # (verified on-host: the GO/NO-GO stress ran with no group-add).
       "--security-opt=seccomp=unconfined"
       "--shm-size=8g"
     ];
