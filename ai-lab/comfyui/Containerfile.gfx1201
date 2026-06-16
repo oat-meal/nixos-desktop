@@ -1,0 +1,45 @@
+# Derived ComfyUI image for RDNA4 (Radeon RX 9070 XT, gfx1201) — the World Weaver
+# render node on workstation-nixos. Sibling to ./Containerfile (the server's gfx1151
+# image); same model: the /storage/comfyui VOLUME holds the full ComfyUI tree (core +
+# custom_nodes code + models, rsynced from the server), and THIS image supplies only
+# the runtime (torch/ROCm) + the Python deps those pieces need.
+#
+# Base: yanwk/comfyui-boot ROCm 7.2 / PyTorch 2.12. gfx1201 is natively supported —
+# verified on the workstation 2026-06-16: torch sees the 9070 XT with NO
+# HSA_OVERRIDE, and sustained rocBLAS+MIOpen+SDPA stress (400 matmul/conv iters and
+# 60 diffusion-like renders with alloc churn) ran with zero HIP crashes and no leak.
+#
+# Build out-of-band with rootful podman so the (root) oci-containers service sees it:
+#   cd /etc/nixos/ai-lab/comfyui && sudo podman build -f Containerfile.gfx1201 -t localhost/comfyui-gfx1201-ww:v1 .
+# Bump the tag (v2, v3…) when deps change, then `sudo systemctl restart podman-comfyui-ww`.
+# The localhost/ prefix keeps podman from trying to pull it from a registry.
+
+# Pinned by digest after verification (== :base-rocm72-pt212-20260518) so the base
+# can't shift under us. Resolve/refresh with:
+#   skopeo inspect docker://docker.io/yanwk/comfyui-boot:base-rocm72-pt212-20260518
+FROM docker.io/yanwk/comfyui-boot:base-rocm72-pt212-20260518
+
+# ComfyUI CORE deps. The code lives in the volume, but its Python requirements must be
+# in the image's site-packages. Clone shallow only to grab requirements.txt, install,
+# then discard the clone (the volume provides the actual main.py / comfy/ at runtime).
+RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI /tmp/comfyui \
+ && python3 -m pip install --break-system-packages --no-cache-dir -r /tmp/comfyui/requirements.txt \
+ && rm -rf /tmp/comfyui
+
+# CUSTOM-NODE Python deps (node code itself comes from the volume's custom_nodes/).
+# Mirrors the server image: Impact Pack + Subpack (detectors/detailer), ControlNet aux
+# (CPU onnxruntime — this is AMD, onnxruntime-gpu is NVIDIA-only), IPAdapter_plus
+# (+insightface/onnx for FaceID), Ultimate SD Upscale. mediapipe intentionally OMITTED
+# (it can force a numpy<2 downgrade that breaks torch; the preprocessors we use don't
+# need it).
+RUN python3 -m pip install --break-system-packages --no-cache-dir \
+      opencv-python-headless scikit-image piexif dill \
+      segment-anything ultralytics "git+https://github.com/facebookresearch/sam2" \
+      onnxruntime einops insightface onnx \
+      addict yacs yapf ftfy fvcore trimesh albumentations scikit-learn
+
+WORKDIR /opt/ComfyUI
+EXPOSE 8188
+# Bind 0.0.0.0 inside the container; the host port-maps it to 127.0.0.1 (loopback —
+# the WW backend runs on this same host).
+CMD ["python3", "main.py", "--listen", "0.0.0.0", "--port", "8188"]
