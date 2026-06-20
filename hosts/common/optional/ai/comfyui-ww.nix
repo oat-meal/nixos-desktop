@@ -27,6 +27,19 @@
     image = "localhost/comfyui-gfx1201-ww:v1";
     ports = [ "127.0.0.1:8188:8188" ];          # loopback only — WW backend is local
     volumes = [ "/storage/comfyui:/opt/ComfyUI" ]; # full ComfyUI tree (rsynced from server)
+
+    # RDNA4 stability: ComfyUI sees the HIP/ROCm card as "cuda:0" (HIP impersonates
+    # CUDA), so it auto-enables two Nvidia-only optimizations — async multi-stream
+    # weight offloading and pinned host memory — which trigger a GPU coredump on
+    # gfx1201 during the heavy tiled SD-upscale stage (UltimateSDUpscale re-diffusing
+    # 1024x1024 tiles). Base render + FaceDetailer survive; the upscale faulted hard.
+    # Disabling both makes the full hi-res/detail/upscale pipeline complete cleanly
+    # (verified 2026-06-20: 86s end-to-end, no coredump). hipBLASLt/MIOpen env-var
+    # workarounds did NOT help — the offload path is the real cause. We override the
+    # entrypoint (the image WORKDIR is /opt/ComfyUI) to inject the two flags.
+    entrypoint = "python3";
+    cmd = [ "main.py" "--listen" "0.0.0.0" "--port" "8188" "--disable-async-offload" "--disable-pinned-memory" ];
+
     environment = {
       # Pin to the discrete 9070 XT (gfx1201, ROCm device index 0); hides the 9950X
       # iGPU (gfx1036, index 1) so HIP never lands on the weak integrated GPU. Verified
