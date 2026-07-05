@@ -14,8 +14,9 @@
     # Core (required)
     ../common/core
 
-    # Desktop environment
-    ../common/optional/desktop/niri
+    # Desktop environment (MangoWM + Noctalia; base = shared greetd/portals/polkit)
+    ../common/optional/desktop/base.nix
+    ../common/optional/desktop/mango
     ../common/optional/desktop/audio.nix
     ../common/optional/desktop/fonts.nix
     ../common/optional/desktop/apps.nix
@@ -36,6 +37,7 @@
     ../common/optional/networking/sops.nix
     ../common/optional/networking/ssh.nix
     ../common/optional/networking/syncthing.nix
+    ../common/optional/networking/tailscale.nix
     ../common/optional/networking/wifi.nix
     ../common/optional/networking/wireguard.nix
 

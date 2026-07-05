@@ -17,12 +17,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Niri compositor (scrollable tiling Wayland)
-    niri-flake = {
-      url = "github:sodiboo/niri-flake";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     # Zen Browser
     zen-browser = {
       url = "github:0xc000022070/zen-browser-flake";
@@ -34,12 +28,26 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Noctalia — native Wayland desktop shell (v5). Evaluating on the workstation;
+    # follows nixpkgs (builds from source, no upstream binary cache).
+    noctalia = {
+      url = "github:noctalia-dev/noctalia";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # MangoWM — dwl-based Wayland compositor. Replacing niri on the workstation
+    # (niri stays available as a greetd session fallback).
+    mango = {
+      url = "github:mangowm/mango";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   ################################
   ## FLAKE OUTPUTS
   ################################
-  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, niri-flake, zen-browser, sops-nix, ... }:
+  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, zen-browser, sops-nix, noctalia, mango, ... }:
     let
       system = "x86_64-linux";
 
@@ -59,7 +67,7 @@
           specialArgs = {
             inherit system;
             inputs = {
-              inherit self nixpkgs nixpkgs-unstable home-manager niri-flake;
+              inherit self nixpkgs nixpkgs-unstable home-manager noctalia mango;
             };
           };
 
@@ -76,11 +84,7 @@
               (final: prev: { zen-browser = zen-browser.packages.${system}.default; })
             ]; }
           ]
-          ++ (if enableDesktop then [
-            # Niri compositor (desktop hosts only)
-            niri-flake.nixosModules.niri
-            { nixpkgs.overlays = [ niri-flake.overlays.niri ]; }
-          ] else [])
+          # Desktop compositor (MangoWM) is imported per-host via hosts/*/default.nix
           ++ extraModules
           ++ (if enableHomeManager then [
             # Home Manager integration
@@ -91,9 +95,9 @@
               ];
               home-manager.users.oat = import ./home/oat/default.nix;
               home-manager.extraSpecialArgs = {
-                inherit system;
+                inherit system hostname;
                 inputs = {
-                  inherit self nixpkgs nixpkgs-unstable home-manager niri-flake;
+                  inherit self nixpkgs nixpkgs-unstable home-manager noctalia mango;
                 };
               };
               home-manager.backupFileExtension = "hm_bak";

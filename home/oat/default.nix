@@ -28,14 +28,10 @@
     ../common/optional/user-packages.nix
     ../common/optional/theme.nix
 
-    # Niri desktop environment (Home Manager configs)
-    ../common/optional/desktop/niri/home.nix
-    ../common/optional/desktop/waybar.nix
-    ../common/optional/desktop/fuzzel.nix
+    # Desktop: MangoWM compositor + Noctalia shell (all desktop hosts)
     ../common/optional/desktop/yazi.nix
-    ../common/optional/desktop/mako.nix
-    ../common/optional/desktop/lock-screen.nix
-    ../common/optional/desktop/wlogout.nix
+    ../common/optional/desktop/noctalia.nix
+    ../common/optional/desktop/mango/home.nix
   ];
 
   ################################
@@ -97,9 +93,25 @@
   # GPG agent configured system-level via yubikey module
 
   ################################
-  ## Default browser
+  ## Default applications
   ################################
   xdg.mimeApps.defaultApplications = {
+    # Plain-text / code -> Neovim in Alacritty (see xdg.desktopEntries.nvim below).
+    # Thunar hands Terminal=true entries to GLib, which can't locate a terminal
+    # (Alacritty isn't in its built-in list) -> "Unable to find terminal".
+    # The nvim.desktop we define runs `alacritty -e nvim` directly (Terminal=false),
+    # sidestepping GLib's terminal lookup entirely.
+    "text/plain" = [ "nvim.desktop" ];
+    "text/markdown" = [ "nvim.desktop" ];
+    "text/x-readme" = [ "nvim.desktop" ];
+    "text/x-log" = [ "nvim.desktop" ];
+    "text/csv" = [ "nvim.desktop" ];
+    "application/json" = [ "nvim.desktop" ];
+    "application/x-shellscript" = [ "nvim.desktop" ];
+    "text/x-python" = [ "nvim.desktop" ];
+    "text/x-nix" = [ "nvim.desktop" ];
+
+    # Browser
     "x-scheme-handler/http" = [ "zen-beta.desktop" ];
     "x-scheme-handler/https" = [ "zen-beta.desktop" ];
     "x-scheme-handler/about" = [ "zen-beta.desktop" ];
@@ -111,6 +123,86 @@
     "application/x-extension-shtml" = [ "zen-beta.desktop" ];
     "application/x-extension-xhtml" = [ "zen-beta.desktop" ];
     "application/x-extension-xht" = [ "zen-beta.desktop" ];
+
+    # Archives -> xarchiver (zip was hijacked by zathura comic-book plugin).
+    # Comic-book formats (.cbz/.cbr) deliberately left on zathura for reading.
+    "application/zip" = [ "xarchiver.desktop" ];
+    "application/x-zip-compressed" = [ "xarchiver.desktop" ];
+    "application/x-7z-compressed" = [ "xarchiver.desktop" ];
+    "application/vnd.rar" = [ "xarchiver.desktop" ];
+    "application/x-rar" = [ "xarchiver.desktop" ];
+    "application/x-rar-compressed" = [ "xarchiver.desktop" ];
+    "application/x-tar" = [ "xarchiver.desktop" ];
+    "application/x-compressed-tar" = [ "xarchiver.desktop" ];      # .tar.gz / .tgz
+    "application/x-bzip-compressed-tar" = [ "xarchiver.desktop" ]; # .tar.bz2
+    "application/x-xz-compressed-tar" = [ "xarchiver.desktop" ];   # .tar.xz
+    "application/x-zstd-compressed-tar" = [ "xarchiver.desktop" ]; # .tar.zst
+    "application/gzip" = [ "xarchiver.desktop" ];
+    "application/x-bzip" = [ "xarchiver.desktop" ];
+    "application/x-bzip2" = [ "xarchiver.desktop" ];
+    "application/x-xz" = [ "xarchiver.desktop" ];
+    "application/zstd" = [ "xarchiver.desktop" ];
+  };
+
+  ################################
+  ## Thunar custom actions (right-click menu)
+  ################################
+  # thunar-archive-plugin ships no xarchiver backend, so wire up
+  # "Extract Here" as a custom action calling xarchiver directly.
+  xdg.configFile."Thunar/uca.xml".text = ''
+    <?xml version="1.0" encoding="UTF-8"?>
+    <actions>
+    <action>
+    	<icon>utilities-terminal</icon>
+    	<name>Open Terminal Here</name>
+    	<submenu></submenu>
+    	<unique-id>1780432366441562-1</unique-id>
+    	<command>exo-open --working-directory %f --launch TerminalEmulator</command>
+    	<description>Example for a custom action</description>
+    	<range></range>
+    	<patterns>*</patterns>
+    	<startup-notify/>
+    	<directories/>
+    </action>
+    <action>
+    	<icon>xarchiver</icon>
+    	<name>Extract Here</name>
+    	<submenu></submenu>
+    	<unique-id>1780432366441562-2</unique-id>
+    	<command>sh -c 'for f in %F; do xarchiver --extract-to="$(dirname "$f")" "$f"; done'</command>
+    	<description>Extract the archive into the current folder</description>
+    	<range></range>
+    	<patterns>*.zip;*.7z;*.rar;*.tar;*.tar.gz;*.tgz;*.tar.bz2;*.tbz2;*.tar.xz;*.txz;*.tar.zst;*.gz;*.bz2;*.xz;*.zst;*.cbz;*.cbr;*.cb7</patterns>
+    	<other-files/>
+    </action>
+    </actions>
+  '';
+
+  ################################
+  ## Neovim launcher (opens in Alacritty)
+  ################################
+  # Shadows the neovim package's nvim.desktop (which is Terminal=true and fails
+  # to launch from Thunar because GLib can't find a terminal). This one invokes
+  # Alacritty directly, so double-click / "Open With" works from the file manager.
+  xdg.desktopEntries.nvim = {
+    name = "Neovim";
+    genericName = "Text Editor";
+    comment = "Edit text files in Neovim (Alacritty)";
+    exec = "alacritty -e nvim %F";
+    icon = "nvim";
+    terminal = false;
+    categories = [ "Utility" "TextEditor" ];
+    mimeType = [
+      "text/plain"
+      "text/markdown"
+      "text/x-readme"
+      "text/x-log"
+      "text/csv"
+      "application/json"
+      "application/x-shellscript"
+      "text/x-python"
+      "text/x-nix"
+    ];
   };
 
   ################################
