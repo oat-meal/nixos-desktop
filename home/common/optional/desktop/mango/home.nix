@@ -16,9 +16,27 @@
 let
   noctalia = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
   nc = "${noctalia}/bin/noctalia";
+
+  # Screen recording toggle: first press picks a region (slurp) and starts
+  # wl-screenrec (VAAPI hardware encode); second press stops it. Files land in
+  # ~/Videos. Notifications render via Noctalia's notification daemon.
+  screenrec-toggle = pkgs.writeShellScriptBin "screenrec-toggle" ''
+    dir="$HOME/Videos"
+    if ${pkgs.procps}/bin/pkill -INT -x wl-screenrec; then
+      ${pkgs.libnotify}/bin/notify-send "Screen recording" "Stopped — saved in $dir"
+      exit 0
+    fi
+    mkdir -p "$dir"
+    region="$(${pkgs.slurp}/bin/slurp)" || exit 0
+    ${pkgs.libnotify}/bin/notify-send "Screen recording" "Recording region to $dir"
+    exec ${pkgs.wl-screenrec}/bin/wl-screenrec -g "$region" -f "$dir/rec-$(date +%Y%m%d-%H%M%S).mp4"
+  '';
 in
 {
   imports = [ inputs.mango.hmModules.mango ];
+
+  # Also on PATH for manual use (e.g. full-screen: wl-screenrec -f out.mp4)
+  home.packages = [ screenrec-toggle ];
 
   wayland.windowManager.mango = {
     enable = true;
@@ -155,6 +173,9 @@ in
       # ---------------- Screenshots (Noctalia) ----------------
       bind=none,Print,spawn,${nc} msg screenshot-fullscreen
       bind=SUPER+SHIFT,s,spawn,${nc} msg screenshot-region
+
+      # ---------------- Screen recording (region toggle: start / stop) ----------------
+      bind=SUPER+CTRL,s,spawn,${screenrec-toggle}/bin/screenrec-toggle
 
       # ---------------- Caffeine (idle inhibit toggle) ----------------
       bind=SUPER+SHIFT,c,spawn,${nc} msg caffeine-toggle

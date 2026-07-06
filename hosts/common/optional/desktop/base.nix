@@ -84,6 +84,9 @@
     slurp
     satty
 
+    # Screen recording (SUPER+CTRL+S toggle in mango; VAAPI hardware encode)
+    wl-screenrec
+
     # Display configuration
     wdisplays
     wlr-randr
