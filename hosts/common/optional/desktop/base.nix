@@ -28,6 +28,11 @@
   security.polkit.enable = true;
 
   ################################
+  ## dconf (backend for Home Manager GTK theme settings; niri enabled this implicitly)
+  ################################
+  programs.dconf.enable = true;
+
+  ################################
   ## GNOME Keyring (credential storage)
   ################################
   services.gnome.gnome-keyring.enable = true;
