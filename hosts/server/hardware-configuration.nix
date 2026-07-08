@@ -46,6 +46,22 @@
 
   swapDevices = [ ];
 
+  # LUKS2 encrypted root — 2x NVMe mirror. rpool's mirror-0 vdev lives on
+  # /dev/mapper/cryptroot0 + cryptroot1, so BOTH must be unlocked in initrd
+  # before rpool can import. systemd-initrd caches the passphrase across
+  # devices, so a single prompt unlocks both.
+  #
+  # NOTE: the installer created these locally but never committed the block, so
+  # a deploy that reset the working tree dropped it — producing initrds that
+  # never prompted for the passphrase and left rpool unimportable. Committed
+  # 2026-07-08 so git is the source of truth and it survives future deploys.
+  boot.initrd.luks.devices."cryptroot0" = {
+    device = "/dev/disk/by-uuid/3b9b7527-7e54-4e86-9c4f-17ed2b0ae357";
+  };
+  boot.initrd.luks.devices."cryptroot1" = {
+    device = "/dev/disk/by-uuid/5b0f11a5-9c0e-4610-91b3-181249072eea";
+  };
+
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 }
