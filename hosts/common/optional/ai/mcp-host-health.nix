@@ -5,8 +5,6 @@
 { pkgs, ... }:
 
 let
-  secrets = import ../../../../secrets/network.nix;
-
   # Python env with just the MCP SDK (provides mcp.server.fastmcp). No venv needed.
   pyEnv = pkgs.python3.withPackages (ps: [ ps.mcp ]);
 
@@ -20,8 +18,7 @@ let
   '';
 in
 {
+  # Journal read access for the health/fleet tools is granted fleet-wide via the
+  # systemd-journal group in hosts/common/core/users.nix.
   environment.systemPackages = [ host-health-mcp ];
-
-  # Let the health tools read the journal without sudo.
-  users.users.${secrets.user}.extraGroups = [ "systemd-journal" ];
 }
