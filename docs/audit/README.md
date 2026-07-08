@@ -145,6 +145,37 @@ coredumpctl list --no-pager 2>/dev/null | tail -10
 nix eval "/etc/nixos#nixosConfigurations.$(hostname).config.system.build.toplevel.drvPath"
 ```
 
+### 12. Documentation matches the tree (repo-wide — run once, not per-host)
+
+Docs and code comments drift as modules/services are renamed or removed. Verify the
+repo still describes reality:
+
+```bash
+cd /etc/nixos
+
+# a) Dangling path references — any repo path named in a comment or doc should exist
+#    (skips <user>/<hostname> placeholders; gitignored dirs may legitimately be absent):
+git grep -hoE '(hosts|home|ai-lab|docs|installer|secrets)/[A-Za-z0-9_./<>-]+\.(nix|md|py|sh|json)' \
+  | sort -u | while read -r p; do
+      case "$p" in *'<'*|*...*) continue;; esac   # skip placeholders + abbreviations
+      [ -e "$p" ] || echo "MISSING: $p"
+    done
+
+# b) Structure-tree drift — list the real dirs/docs, then eyeball vs the README
+#    "Repository Structure" block (anything new that isn't listed → add it):
+ls -d hosts/common/optional/*/ home/common/optional/* ai-lab/*/ 2>/dev/null; ls docs/*.md
+
+# c) Stale desktop/service names (extend the pattern as things are removed/renamed):
+git grep -niE '\bniri\b|sillytavern|waybar|comfyui-ww' -- . | grep -v 'docs/audit/'
+```
+
+- Any `MISSING:` from (a) is a candidate broken reference — investigate each (a few are
+  false positives: nixpkgs `modulesPath` imports, or absolute runtime paths like `/home/nixos/`).
+- (b): every listed dir/doc should appear in the README tree.
+- (c): matches outside dated audit history are stale references to clean up.
+- Also confirm any orphan module (a `.nix` imported by no host) is listed under the
+  README "Inactive modules kept in tree" note.
+
 ## Cross-Host Checks
 
 After auditing individual hosts, verify connectivity and shared state:

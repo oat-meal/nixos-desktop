@@ -13,7 +13,7 @@ set -euo pipefail
 # Content file extensions that should never be in this repo.
 ext_re='\.(png|jpe?g|webp|gif|bmp|tiff?|gguf|safetensors|ckpt|pt|pth|bin|onnx|mp4|mov|wav|mp3)$'
 # Content paths (kept private even though the file types vary).
-path_re='^ai-lab/(sillytavern/characters|comfyui/workflows)/'
+path_re='^ai-lab/comfyui/workflows/'
 
 blocked=""
 while IFS= read -r f; do
