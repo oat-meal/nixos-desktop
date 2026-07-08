@@ -17,6 +17,9 @@
     rustdesk-flutter       # Remote desktop client
     waypaper               # GUI wallpaper manager for Wayland (swaybg backend)
 
+    ######## Game development ########
+    godot_4                # Godot 4 engine (ships .desktop entry -> shows in Noctalia launcher)
+
     ######## User tools ########
     # wl-clipboard, htop, ripgrep provided by system packages (core/niri)
     unzip                  # ZIP archive extraction

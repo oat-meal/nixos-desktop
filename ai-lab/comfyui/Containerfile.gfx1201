@@ -38,6 +38,11 @@ RUN python3 -m pip install --break-system-packages --no-cache-dir \
       onnxruntime einops insightface onnx \
       addict yacs yapf ftfy fvcore trimesh albumentations scikit-learn
 
+# Background-removal / matting: ComfyUI-Inspyrenet-Rembg (local CPU alpha matting — cleaner
+# soft-alpha cutouts than the flood-fill keyer, for sprites/items). Node code is in the
+# volume's custom_nodes/; this supplies its single Python dep (pulls timm/kornia/gdown).
+RUN python3 -m pip install --break-system-packages --no-cache-dir transparent-background
+
 WORKDIR /opt/ComfyUI
 EXPOSE 8188
 # Bind 0.0.0.0 inside the container; the host port-maps it to 127.0.0.1 (loopback —

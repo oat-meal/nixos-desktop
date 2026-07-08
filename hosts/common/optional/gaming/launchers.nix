@@ -16,8 +16,8 @@
     # GPU control
     corectrl
 
-    # Wine support
-    wine
+    # Wine support (WoW64: both 32- and 64-bit — needed for 64-bit Windows games)
+    wineWowPackages.stable
     winetricks
     protontricks
 
