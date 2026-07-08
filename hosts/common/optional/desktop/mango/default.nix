@@ -1,12 +1,12 @@
 # MangoWM — dwl-based Wayland compositor (NixOS / system module).
 #
-# Imported by the workstation only. Provides the mango compositor + a greetd
-# session entry that sits ALONGSIDE the niri session (see ../niri/default.nix),
-# so niri remains a one-keystroke fallback at the tuigreet session picker.
+# Imported by every desktop host. Provides the mango compositor + a greetd
+# session entry, selectable at the tuigreet session picker.
 #
 # All the shared desktop infrastructure — greetd itself, xdg portals, polkit,
 # gnome-keyring, wl-clipboard, grim/slurp, wallpaper tools — is defined in the
-# niri system module and reused as-is; this file adds only what is mango-specific.
+# compositor-agnostic base (../base.nix) and reused as-is; this file adds only
+# what is mango-specific.
 
 { pkgs, inputs, ... }:
 

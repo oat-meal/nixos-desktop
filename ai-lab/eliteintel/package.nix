@@ -43,7 +43,7 @@ let
     name = "eliteintel";
     runtimeInputs = [ temurin-bin coreutils ];
     text = ''
-      # Java/AWT renders blank under tiling Wayland WMs (niri) without this.
+      # Java/AWT renders blank under tiling Wayland compositors (e.g. MangoWM) without this.
       export _JAVA_AWT_WM_NONREPARENTING=1
 
       assets=${assets}/share/eliteintel

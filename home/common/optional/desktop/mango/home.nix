@@ -1,14 +1,14 @@
 # MangoWM — Home Manager config. Imported by every desktop host.
 #
 # Design:
-#   - Default layout is `scroller` on every tag, to mimic niri's scrollable feel.
-#   - SUPER is the primary modifier (matches the old niri Mod).
+#   - Default layout is `scroller` on every tag, for a horizontally-scrollable feel.
+#   - SUPER is the primary modifier.
 #   - Noctalia is the full shell: bar, notifications, OSDs, launcher, clipboard,
 #     lock, session menu, screenshots, brightness/volume — driven via `noctalia
 #     msg` IPC (full store path, so binds don't depend on the session PATH).
 #
-# Approximations vs the old niri setup (mango's tag/dwl model differs):
-#   - niri column-stacking (consume/expel) has no direct analog → omitted.
+# Notes on mango's tag/dwl model:
+#   - column-stacking (consume/expel) has no direct analog in dwl → omitted.
 #   - column width -/+10% → scroller set_proportion presets (Mod+R cycles).
 
 { pkgs, inputs, ... }:
@@ -82,7 +82,7 @@ in
       trackpad_natural_scrolling=1
       disable_while_typing=1
 
-      # ---------------- Default layout per tag: scroller (niri-like) ----------------
+      # ---------------- Default layout per tag: scroller ----------------
       tagrule=id:1,layout_name:scroller
       tagrule=id:2,layout_name:scroller
       tagrule=id:3,layout_name:scroller
@@ -126,7 +126,7 @@ in
       bind=SUPER+SHIFT,Up,exchange_client,up
       bind=SUPER+SHIFT,Right,exchange_client,right
 
-      # ---------------- Tags (niri "workspaces") ----------------
+      # ---------------- Tags (workspaces) ----------------
       bind=SUPER,1,view,1,0
       bind=SUPER,2,view,2,0
       bind=SUPER,3,view,3,0
@@ -153,7 +153,7 @@ in
       bind=SUPER+SHIFT,Page_Down,tagtoright,0
       bind=SUPER+SHIFT,Page_Up,tagtoleft,0
 
-      # ---------------- Scroller proportion (niri preset widths) ----------------
+      # ---------------- Scroller proportion (preset widths) ----------------
       bind=SUPER,r,switch_proportion_preset,
       bind=SUPER,minus,set_proportion,0.5
       bind=SUPER,equal,set_proportion,1.0
@@ -162,7 +162,7 @@ in
       bind=SUPER,o,toggleoverview,
       bind=SUPER+SHIFT,space,switch_layout,
 
-      # ---------------- Wheel: tag navigation (niri Mod+scroll) ----------------
+      # ---------------- Wheel: tag navigation (Mod+scroll) ----------------
       axisbind=SUPER,DOWN,viewtoright_have_client
       axisbind=SUPER,UP,viewtoleft_have_client
 

@@ -1,5 +1,5 @@
 # Framework 13 laptop configuration
-# AMD Ryzen, Niri compositor, power management optimized
+# AMD Ryzen, MangoWM compositor, power management optimized
 
 { config, pkgs, lib, ... }:
 

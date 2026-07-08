@@ -1,6 +1,6 @@
 # Shared desktop system infrastructure (compositor-agnostic).
 #
-# Extracted from the former niri module so it can back MangoWM. Provides the login
+# Extracted into a compositor-agnostic module so it can back MangoWM. Provides the login
 # manager (greetd + tuigreet), XDG portals, polkit, gnome-keyring, and the common
 # Wayland tooling. Compositor-specific bits live in the per-compositor module
 # (hosts/common/optional/desktop/mango). Imported by every desktop host.
@@ -28,7 +28,7 @@
   security.polkit.enable = true;
 
   ################################
-  ## dconf (backend for Home Manager GTK theme settings; niri enabled this implicitly)
+  ## dconf (backend for Home Manager GTK theme settings; must be enabled explicitly under MangoWM)
   ################################
   programs.dconf.enable = true;
 

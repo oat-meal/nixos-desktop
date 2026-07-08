@@ -1,8 +1,9 @@
-# niri: file/folder pickers do nothing (xdg-desktop-portal FileChooser)
+# Wayland: file/folder pickers do nothing (xdg-desktop-portal FileChooser)
 
 ## Symptom
-On niri, GTK/Electron apps' file dialogs silently fail — e.g. Obsidian "Open folder as
-vault" does nothing, browser upload/download pickers never appear. No error to the user.
+On a minimal Wayland compositor (e.g. MangoWM), GTK/Electron apps' file dialogs silently
+fail — e.g. Obsidian "Open folder as vault" does nothing, browser upload/download pickers
+never appear. No error to the user.
 
 ## Cause
 `xdg-desktop-portal` routed the `FileChooser` interface to the **GNOME** backend, whose
@@ -18,8 +19,8 @@ Compounding it: the portal config referenced `gtk` for some interfaces, but
 back to.
 
 ## Fix
-In `hosts/common/optional/desktop/niri/default.nix`, add the GTK portal and route
-`FileChooser` to it (GTK's portal has a built-in chooser; no Nautilus needed):
+In the shared desktop base (`hosts/common/optional/desktop/base.nix`), add the GTK portal
+and route `FileChooser` to it (GTK's portal has a built-in chooser; no Nautilus needed):
 
 ```nix
 xdg.portal = {
@@ -50,6 +51,6 @@ grep -r FileChooser /run/current-system/sw/share/xdg-desktop-portal/*portals.con
 # -> org.freedesktop.impl.portal.FileChooser=gtk
 ```
 
-Fixes all file dialogs on niri, not just Obsidian. Commit `9a7bb53` (2026-06-07).
+Fixes all file dialogs, not just Obsidian. Commit `9a7bb53` (2026-06-07).
 Alternative fix would be installing Nautilus, but the GTK portal is lighter and the standard
 choice for non-GNOME compositors.
