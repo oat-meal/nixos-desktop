@@ -23,9 +23,8 @@
 
   virtualisation.oci-containers.containers.comfyui-render = {
     # Locally-derived gfx1201 image — see ai-lab/comfyui/Containerfile.gfx1201 for the
-    # build command. localhost/ prefix = no registry pull. (The "-ww" in the tag is the
-    # existing build-artifact name; kept to avoid an 18 GB rebuild-just-to-retag.)
-    image = "localhost/comfyui-gfx1201-ww:v2";
+    # build command. localhost/ prefix = no registry pull.
+    image = "localhost/comfyui-gfx1201-render:v2";
     ports = [ "127.0.0.1:8188:8188" ];          # loopback only — consumers are local
     volumes = [ "/storage/comfyui:/opt/ComfyUI" ]; # full ComfyUI tree (rsynced from server)
 

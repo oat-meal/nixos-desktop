@@ -1,4 +1,4 @@
-# Derived ComfyUI image for RDNA4 (Radeon RX 9070 XT, gfx1201) — the World Weaver
+# Derived ComfyUI image for RDNA4 (Radeon RX 9070 XT, gfx1201) — the image-gen
 # render node on workstation-nixos. Sibling to ./Containerfile (the server's gfx1151
 # image); same model: the /storage/comfyui VOLUME holds the full ComfyUI tree (core +
 # custom_nodes code + models, rsynced from the server), and THIS image supplies only
@@ -10,8 +10,8 @@
 # 60 diffusion-like renders with alloc churn) ran with zero HIP crashes and no leak.
 #
 # Build out-of-band with rootful podman so the (root) oci-containers service sees it:
-#   cd /etc/nixos/ai-lab/comfyui && sudo podman build -f Containerfile.gfx1201 -t localhost/comfyui-gfx1201-ww:v1 .
-# Bump the tag (v2, v3…) when deps change, then `sudo systemctl restart podman-comfyui-ww`.
+#   cd /etc/nixos/ai-lab/comfyui && sudo podman build -f Containerfile.gfx1201 -t localhost/comfyui-gfx1201-render:v2 .
+# Bump the tag (v2, v3…) when deps change, then `sudo systemctl restart podman-comfyui-render`.
 # The localhost/ prefix keeps podman from trying to pull it from a registry.
 
 # Pinned by digest after verification (== :base-rocm72-pt212-20260518) so the base
@@ -46,5 +46,5 @@ RUN python3 -m pip install --break-system-packages --no-cache-dir transparent-ba
 WORKDIR /opt/ComfyUI
 EXPOSE 8188
 # Bind 0.0.0.0 inside the container; the host port-maps it to 127.0.0.1 (loopback —
-# the WW backend runs on this same host).
+# the image-gen consumers run on this same host).
 CMD ["python3", "main.py", "--listen", "0.0.0.0", "--port", "8188"]
