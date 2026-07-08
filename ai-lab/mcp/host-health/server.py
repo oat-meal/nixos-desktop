@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import re
 import subprocess
 from mcp.server.fastmcp import FastMCP
 
@@ -123,6 +124,165 @@ def disk_usage() -> str:
     """Get disk usage for all ZFS datasets and key mount points."""
     zfs = run(["zfs", "list", "-o", "name,used,avail,refer,mountpoint"])
     return zfs
+
+
+# ---------------------------------------------------------------------------
+# Fleet tools — fan out across the wg0 mesh. The MCP runs on the server, so
+# "server" is local (sh -c); workstation/laptop are reached as oat@<wg0-ip>.
+# Read-only. Unreachable hosts (e.g. a powered-off laptop) degrade gracefully.
+# ---------------------------------------------------------------------------
+
+HOSTS = {"server": None, "workstation": "10.100.0.1", "laptop": "10.100.0.3"}
+SYS_PATH = "/run/current-system/sw/bin"
+_ESC = re.compile(r"\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-9;?]*[ -/]*[@-~]")
+
+
+def _clean(s: str) -> str:
+    """Strip ANSI/OSC escapes (the mesh shells inject terminal color codes over ssh)."""
+    return _ESC.sub("", s)
+
+
+def run_on(host_ip, shell_cmd: str, timeout: int = 12) -> str:
+    """Run a shell command locally (host_ip is None) or on a remote wg0 host via ssh.
+
+    Prepends the NixOS system PATH so tools resolve in a non-login session; remote
+    uses key-only auth and auto-accepts first-seen host keys (private wg0 mesh).
+    """
+    full = f"export PATH={SYS_PATH}:$PATH; {shell_cmd}"
+    if host_ip is None:
+        return _clean(run(["sh", "-c", full], timeout=timeout))
+    ssh = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
+           "-o", "StrictHostKeyChecking=accept-new", f"oat@{host_ip}", full]
+    return _clean(run(ssh, timeout=timeout + 5))
+
+
+def _unreachable(raw: str) -> bool:
+    low = raw.lower()
+    return (raw.startswith("ERROR") or "verification failed" in low
+            or "timed out" in low or "connection refused" in low
+            or "no route to host" in low or "could not resolve" in low
+            or "permission denied" in low)
+
+
+def _sections(raw: str) -> dict:
+    secs, cur = {}, None
+    for line in raw.splitlines():
+        m = re.match(r"^@@@(\w+)@@@$", line.strip())
+        if m:
+            cur = m.group(1)
+            secs[cur] = []
+        elif cur is not None:
+            secs[cur].append(line)
+    return secs
+
+
+def _first(secs: dict, key: str) -> str:
+    return next((x.strip() for x in secs.get(key, []) if x.strip()), "")
+
+
+@mcp.tool()
+def fleet_health(hosts: list[str] | None = None) -> str:
+    """Health snapshot across the wg0 fleet (server, workstation, laptop).
+
+    One ssh round-trip per host gathers: uptime, failed systemd units, root and
+    /storage disk usage, ZFS pool health, and the current system generation.
+    Unreachable hosts (e.g. a powered-off laptop) are reported as such. Returns
+    JSON keyed by host — structured for later LLM triage. Read-only.
+
+    Args:
+        hosts: optional subset, e.g. ["server", "workstation"]. Default: all.
+    """
+    # Markers use @@@ (not ===): the remote login shell is zsh, whose EQUALS
+    # expansion would try to run a leading "===HOST===" as a command.
+    script = (
+        "echo @@@HOST@@@; hostname; "
+        "echo @@@UP@@@; awk '{s=$1; printf \"%dd %dh %dm\\n\", s/86400, s%86400/3600, s%3600/60}' /proc/uptime 2>/dev/null; "
+        "echo @@@FAILED@@@; systemctl --failed --no-legend --no-pager 2>/dev/null; "
+        "echo @@@DISK@@@; df -h --output=target,pcent / /storage 2>/dev/null | tail -n +2; "
+        "echo @@@ZFS@@@; zpool list -H -o name,cap,health 2>/dev/null; "
+        "echo @@@GEN@@@; readlink -f /run/current-system 2>/dev/null | sed 's#.*/##'"
+    )
+    out = {}
+    for h in (hosts or list(HOSTS)):
+        if h not in HOSTS:
+            out[h] = {"error": f"unknown host '{h}'"}
+            continue
+        raw = run_on(HOSTS[h], script, timeout=12)
+        if _unreachable(raw):
+            out[h] = {"reachable": False, "detail": raw.strip()[:200]}
+            continue
+        s = _sections(raw)
+        failed = [l.strip() for l in s.get("FAILED", []) if l.strip()]
+        out[h] = {
+            "reachable": True,
+            "hostname": _first(s, "HOST"),
+            "uptime": _first(s, "UP"),
+            "failed_count": len(failed),
+            "failed_units": failed,
+            "disk": [l.strip() for l in s.get("DISK", []) if l.strip()],
+            "zfs": [l.strip() for l in s.get("ZFS", []) if l.strip()],
+            "generation": _first(s, "GEN"),
+        }
+    return json.dumps(out, indent=2)
+
+
+@mcp.tool()
+def fleet_service_status(services: list[str] | None = None,
+                         hosts: list[str] | None = None) -> str:
+    """systemd service state across the wg0 fleet (one block per host).
+
+    Args:
+        services: services to check on each host. Default: mesh essentials
+                  (wireguard-wg0, sshd, syncthing, fail2ban).
+        hosts: optional subset. Default: all.
+    """
+    svcs = services or ["wireguard-wg0.service", "sshd.service",
+                        "syncthing.service", "fail2ban.service"]
+    script = (
+        "for s in " + " ".join(svcs) + "; do "
+        'echo "$s: $(systemctl is-active "$s" 2>/dev/null)"; done; '
+        'f=$(systemctl --failed --no-legend --no-pager 2>/dev/null); '
+        '[ -n "$f" ] && { echo "-- failed units --"; echo "$f"; } || echo "-- no failed units --"'
+    )
+    blocks = []
+    for h in (hosts or list(HOSTS)):
+        if h not in HOSTS:
+            blocks.append(f"## {h}\nunknown host")
+            continue
+        raw = run_on(HOSTS[h], script, timeout=12)
+        body = f"UNREACHABLE: {raw.strip()[:120]}" if _unreachable(raw) else raw.strip()
+        blocks.append(f"## {h}\n{body}")
+    return "\n\n".join(blocks)
+
+
+@mcp.tool()
+def fleet_journal_errors(since: str = "24h ago", priority: str = "err",
+                         limit: int = 30, hosts: list[str] | None = None) -> str:
+    """Recent journal errors across the wg0 fleet (one block per host).
+
+    NOTE: full system-journal access on a remote host requires the `oat` user to be
+    in that host's `systemd-journal` group (currently only guaranteed on the server).
+
+    Args:
+        since: window, e.g. "1h ago", "today". Default: "24h ago".
+        priority: minimum level (emerg..warning). Default: err.
+        limit: max lines per host. Default: 30.
+        hosts: optional subset. Default: all.
+    """
+    script = (f'journalctl --since="{since}" --priority={priority} --no-pager '
+              f'--lines={limit} --output=short-precise 2>/dev/null')
+    blocks = []
+    for h in (hosts or list(HOSTS)):
+        if h not in HOSTS:
+            blocks.append(f"## {h}\nunknown host")
+            continue
+        raw = run_on(HOSTS[h], script, timeout=20)
+        if _unreachable(raw):
+            body = f"UNREACHABLE: {raw.strip()[:120]}"
+        else:
+            body = raw.strip() or "No entries matching criteria."
+        blocks.append(f"## {h}\n{body}")
+    return "\n\n".join(blocks)
 
 
 if __name__ == "__main__":
