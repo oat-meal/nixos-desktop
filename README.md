@@ -43,8 +43,9 @@ All hosts use the same disk layout:
 A custom installer ISO handles partitioning, encryption, and system deployment:
 
 ```bash
-# 1. Build and flash the installer USB (from an existing NixOS host)
-sudo bash ~/flash-installer-usb.sh
+# 1. Build the installer ISO, then flash it to USB (from an existing NixOS host)
+nix build .#installer-iso                    # -> ./result/iso/*.iso
+sudo dd if=./result/iso/*.iso of=/dev/sdX bs=4M status=progress oflag=sync   # replace sdX
 
 # 2. Boot the USB on the target machine
 
@@ -96,7 +97,8 @@ nixos-lab/
 ├── installer/                       # Custom installer ISO
 │   ├── default.nix                  # ISO system configuration
 │   ├── install.sh                   # Interactive install script
-│   └── refresh-flake.sh             # Pull latest flake to USB
+│   ├── refresh-flake.sh             # Pull latest flake to USB
+│   └── claude-config/               # CLAUDE.md baked into the ISO
 │
 ├── hosts/
 │   ├── common/
@@ -110,10 +112,11 @@ nixos-lab/
 │   │   │   └── users.nix            # User definitions
 │   │   │
 │   │   └── optional/                # Opt-in modules
+│   │       ├── ai/                  # Ollama, Open WebUI, ComfyUI, SearXNG, ChromaDB, dashboard
 │   │       ├── desktop/             # MangoWM, greetd, audio, fonts, apps
 │   │       ├── gaming/              # Steam, GameMode, Vulkan
-│   │       ├── hardware/            # AMD, Bluetooth, Framework, DisplayLink (inactive)
-│   │       ├── networking/          # Firewall, NordVPN, SSH, WiFi, WireGuard, Syncthing, sops
+│   │       ├── hardware/            # AMD, Bluetooth, Framework, printing, DisplayLink (inactive)
+│   │       ├── networking/          # Firewall, NordVPN, SSH, WiFi, WireGuard, Syncthing, Tailscale, sops
 │   │       ├── power/               # Performance, portable, hibernate
 │   │       ├── security/            # LUKS/FIDO2, YubiKey, PAM U2F, sudo
 │   │       └── storage/             # ZFS maintenance (scrub, snapshots, logrotate)
@@ -130,7 +133,24 @@ nixos-lab/
 │       ├── theme.nix                # Catppuccin Macchiato
 │       └── user-packages.nix        # User applications
 │
+├── ai-lab/                          # Self-hosted AI stack (see docs/ai-lab.md)
+│   ├── api/                         # Lab OpenAPI tool server (Open WebUI tools)
+│   ├── bench/                       # Reproducible model benchmark scripts
+│   ├── comfyui/                     # ComfyUI image (Containerfile, workflows)
+│   ├── eliteintel/                  # Elite Dangerous voice copilot package
+│   ├── lora-training/               # LoRA training toolkit
+│   ├── mcp/                         # Host-health MCP server
+│   ├── openwebui/                   # Open WebUI custom tools
+│   ├── quorum/                      # Multi-model quorum CLI
+│   ├── rag/                         # RAG (ChromaDB + embeddings) CLI
+│   └── research/                    # Deep-research CLI (SearXNG → synthesize)
+│
 └── docs/
+    ├── ai-lab.md                    # AI stack: models, benchmarks, hardware notes
+    ├── nixos-primer.md              # Intro to this flake for NixOS newcomers
+    ├── deployment.md                # Deployment guide
+    ├── deployment-issues.md         # Deployment lessons learned
+    ├── portal-filechooser.md        # xdg-desktop-portal FileChooser fix
     ├── audit/                       # System audit framework
     └── NORDVPN-SETUP.md             # VPN guide
 ```

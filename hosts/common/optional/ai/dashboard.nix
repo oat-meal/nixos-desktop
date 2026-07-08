@@ -7,7 +7,7 @@
 
 let
   host = "10.100.0.2"; # server mesh IP (wg0)
-  port = 8085; # free: 8080 OWUI, 8091 lab-api, 8188 ComfyUI, 8888 SearXNG, 8002 ST
+  port = 8085; # 8085 free; in use: 8080 OWUI, 8091 lab-api, 8188 ComfyUI, 8888 SearXNG
   url = p: "http://${host}:${toString p}";
 in
 {

@@ -103,10 +103,9 @@ If you want to prevent all internet traffic when VPN is disconnected, edit `/etc
 
 Steam Remote Play ports are already configured to work through the VPN. If you have connection issues:
 
-```bash
-# Temporarily allow specific ports
-sudo firewall-cmd --add-port=27036-27037/tcp  # If using firewalld
-```
+NixOS uses a declarative nftables firewall (not firewalld). If Steam Remote Play needs
+extra ports, add them to `networking.firewall.allowedTCPPorts` / `.allowedUDPPorts` and
+rebuild — there is no runtime `firewall-cmd`.
 
 ## Troubleshooting
 
@@ -175,5 +174,4 @@ sudo nft list ruleset | grep wgnord
 
 ## Configuration Files
 
-- `/etc/nixos/hosts/common/optional/networking/nordvpn.nix` — WireGuard VPN, firewall, helper scripts
-- `/etc/nixos/home/<user>/default.nix` — Waybar VPN status module
+- `/etc/nixos/hosts/common/optional/networking/nordvpn.nix` — WireGuard VPN, firewall, and the `nordvpn` helper alias

@@ -4,7 +4,7 @@
 { lib, ... }:
 
 {
-  # UPower for battery monitoring (used by WirePlumber, waybar, etc.)
+  # UPower for battery monitoring (used by WirePlumber, the Noctalia shell, etc.)
   services.upower.enable = true;
 
   # Power profiles daemon (integrates with Framework)

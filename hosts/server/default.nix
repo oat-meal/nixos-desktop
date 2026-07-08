@@ -183,8 +183,8 @@
       53     # AdGuard DNS
     ];
     # WireGuard-only services (admin/internal)
+    # 22=SSH  111/2049=NFS  3000=AdGuard-UI  11434=Ollama  8080=Open-WebUI  8888=SearXNG  8000=ChromaDB
     interfaces."wg0".allowedTCPPorts = [ 22 111 2049 3000 11434 8080 8888 8000 ];
-    #                                    SSH NFS  NFS  AdGuard-UI Ollama
     interfaces."wg0".allowedUDPPorts = [ 111 2049 ];
     interfaces."wg0".allowedUDPPortRanges = [
       { from = 60000; to = 60010; }  # Mosh

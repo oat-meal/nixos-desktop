@@ -15,7 +15,7 @@ Read the host doc for hardware specs, known states, and audit history before mak
 ## Repository
 
 - **Location**: `/etc/nixos/`
-- **Remote**: `https://github.com/oat-meal/nixos-lab`
+- **Remote**: `git@github.com:oat-meal/nixos-lab.git` (SSH)
 - **Type**: Nix Flakes with Home Manager
 - **Channel**: nixpkgs-25.11 stable, selective unstable overlay (`pkgs.unstable.<pkg>`)
 
@@ -25,7 +25,7 @@ Read the host doc for hardware specs, known states, and audit history before mak
 hosts/
 ├── common/
 │   ├── core/          # Required on ALL hosts (boot, locale, networking, nix, packages, shell, users)
-│   └── optional/      # Mix-in modules (desktop/, gaming/, hardware/, networking/, power/, security/)
+│   └── optional/      # Mix-in modules (ai/, desktop/, gaming/, hardware/, networking/, power/, security/, storage/)
 ├── workstation/       # Gaming workstation config
 ├── laptop/            # Framework 13 config
 ├── server/            # Home server
@@ -35,13 +35,15 @@ home/
 └── common/optional/   # Shared HM modules (desktop/, user-packages.nix, theme.nix)
 
 docs/
+├── ai-lab.md          # Self-hosted AI stack: models, benchmarks, notes
+├── nixos-primer.md    # Intro to this flake for NixOS newcomers
 ├── audit/             # Per-host audit framework
-│   ├── README.md      # Audit checklist (9-step process)
+│   ├── README.md      # Audit checklist
 │   ├── known-states.md # Expected anomalies (do not flag)
 │   ├── workstation.md # Workstation hardware, audit history
-│   └── laptop.md      # Laptop hardware, audit history
-├── NORDVPN-SETUP.md   # wgnord VPN guide
-└── NIRI-MIGRATION.md  # Historical (completed March 2026)
+│   ├── laptop.md      # Laptop hardware, audit history
+│   └── server.md      # Server hardware, audit history
+└── NORDVPN-SETUP.md   # wgnord VPN guide
 ```
 
 ## Common Commands

@@ -28,10 +28,9 @@ automatically vs. what would I restore from on-prem backup?*
   tool **code** Nix builds (`ai-lab/{quorum,rag,research}/*.py`, `ai-lab/api/server.py`,
   `ai-lab/mcp/.../server.py`, `ai-lab/eliteintel/package.nix`, `ai-lab/comfyui/Containerfile`,
   `ai-lab/lora-training/` toolkit). No secrets (git-crypt/sops handle those), no personal data.
-- **Does NOT belong here (content/data → private, on-prem):** character cards
-  (`ai-lab/sillytavern/characters/`), ComfyUI workflow JSONs (`ai-lab/comfyui/workflows/`),
-  prompts/personas, generated images, model weights, RAG corpora, OWUI/ST databases, the
-  LoRA dataset, the Obsidian vault. These live on `/storage` (ZFS-snapshotted), service data
+- **Does NOT belong here (content/data → private, on-prem):** ComfyUI workflow JSONs
+  (`ai-lab/comfyui/workflows/`), prompts/personas, generated images, model weights, RAG
+  corpora, Open WebUI databases, the LoRA dataset, the Obsidian vault. These live on `/storage` (ZFS-snapshotted), service data
   dirs, or the on-prem **private** git — never GitHub:
   - `server:/storage/git/lab-content.git` — cards, ComfyUI workflows, prompts (clone: `~/Documents/lab-content`)
   - `server:/storage/git/ai-lab-vault.git` — Obsidian system-docs vault (clone: `~/Documents/ai-lab-vault`)

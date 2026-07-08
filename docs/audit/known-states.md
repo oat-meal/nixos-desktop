@@ -75,10 +75,6 @@ Items that appear anomalous in system checks but are expected behavior. Check th
 - **Symptom**: System never suspends
 - **Reason**: AMD Ryzen 9950X (Zen 5) has Linux suspend/wake hardware issues. Always-on is intentional.
 
-### Waybar Tray "No icon name or pixmap given"
-- **Symptom**: `Item '': No icon name or pixmap given.` errors in waybar log
-- **Reason**: Electron/Chromium apps (Discord, etc.) use `chrome_status_icon` tray items with empty `IconName` fields. Waybar falls back to pixmap data and renders correctly. Upstream Chromium limitation.
-
 ## laptop-nixos Only
 
 ### UCSI USB-C Controller Error
