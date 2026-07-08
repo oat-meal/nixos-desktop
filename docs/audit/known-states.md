@@ -4,9 +4,9 @@ Items that appear anomalous in system checks but are expected behavior. Check th
 
 ## All Hosts
 
-### Mako — systemd unit inactive
-- **Symptom**: `systemctl --user status mako.service` shows `inactive (dead)`
-- **Reason**: Launched by niri `spawn-at-startup`, not systemd. Verify: `pgrep -a mako`
+### Notifications — no mako service
+- **Symptom**: `systemctl --user status mako.service` shows not-found / inactive
+- **Reason**: Notifications are handled by the Noctalia shell (started from MangoWM's autostart), not a standalone mako systemd unit. Verify: `pgrep -a noctalia`
 
 ### en_DK.UTF-8 Locale with America/Denver Timezone
 - **Symptom**: Locale region (DK) does not match timezone (US Mountain)

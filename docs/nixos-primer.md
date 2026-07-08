@@ -54,7 +54,8 @@ A **flake** is a self-contained Nix project with pinned dependencies. A `flake.n
 nixpkgs          → the package repository (like apt sources)
 nixpkgs-unstable → bleeding-edge packages (used selectively via overlay)
 home-manager     → manages user-level dotfiles and configs
-niri-flake       → the Niri window manager
+mango            → the MangoWM Wayland compositor
+noctalia         → the Noctalia desktop shell
 zen-browser      → the Zen browser
 sops-nix         → secrets management
 ```
@@ -82,7 +83,7 @@ mkSystem { hostname, hostPath, enableDesktop, enableHomeManager }
          ├── hostPath (e.g. hosts/laptop/default.nix)
          ├── sops-nix module (runtime secrets)
          ├── overlays (unstable packages, zen-browser)
-         ├── niri module + overlay (desktop hosts only)
+         ├── mango + noctalia modules (desktop hosts only)
          └── home-manager (desktop hosts only)
              └── home/oat/default.nix
 ```

@@ -120,9 +120,8 @@ sudo iptables -L nixos-fw -n -v 2>/dev/null | grep -E '22|wg0'
 ### 9. Desktop State (desktop hosts only)
 
 ```bash
-pgrep -a niri
-pgrep -a waybar
-pgrep -a mako
+pgrep -a mango
+pgrep -a noctalia
 pgrep -a pipewire
 ```
 

@@ -151,7 +151,7 @@ NixOS firewall defaults to iptables backend (unless `networking.nftables.enable 
 
 - **Module priority**: `lib.mkDefault` for common defaults, `lib.mkForce` for host overrides
 - **Unstable packages**: `pkgs.unstable.<package>` (overlay in flake.nix)
-- **Desktop**: Niri scrollable tiling Wayland compositor
+- **Desktop**: MangoWM Wayland compositor + Noctalia shell
 - **Theme**: Catppuccin Macchiato system-wide
 - **Browser**: Zen Browser
 - **Shell**: Zsh with Oh-My-Zsh

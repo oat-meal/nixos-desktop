@@ -1,5 +1,5 @@
 {
-  description = "NixOS Lab - Multi-host infrastructure with Niri desktop, home server, and laptop";
+  description = "NixOS Lab - Multi-host infrastructure with MangoWM desktop, home server, and laptop";
 
   ################################
   ## FLAKE INPUTS
@@ -36,8 +36,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # MangoWM — dwl-based Wayland compositor. Replacing niri on the workstation
-    # (niri stays available as a greetd session fallback).
+    # MangoWM — dwl-based Wayland compositor. The desktop compositor on all
+    # desktop hosts (niri fully removed 2026-07-04).
     mango = {
       url = "github:mangowm/mango";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -126,14 +126,14 @@
 
       nixosConfigurations = {
         # Gaming Workstation
-        # AMD Ryzen 9950X, Niri compositor, gaming optimizations
+        # AMD Ryzen 9950X, MangoWM compositor, gaming optimizations
         workstation-nixos = mkSystem {
           hostname = "workstation-nixos";
           hostPath = ./hosts/workstation/default.nix;
         };
 
         # Framework 13 Laptop
-        # AMD Ryzen, Niri compositor, power management
+        # AMD Ryzen, MangoWM compositor, power management
         laptop-nixos = mkSystem {
           hostname = "laptop-nixos";
           hostPath = ./hosts/laptop/default.nix;

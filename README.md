@@ -15,6 +15,8 @@ Angle-bracket tokens in the docs are placeholders — replace them with your own
 Host names (`workstation-nixos`, `laptop-nixos`, `server-nixos`) are examples — rename them for your own machines. WireGuard mesh addresses (`10.100.0.x`) are shown as-is; substitute your own mesh range.
 
 > New to NixOS? See [docs/nixos-primer.md](docs/nixos-primer.md)
+>
+> Curious what the self-hosted AI stack runs and how fast? See [docs/ai-lab.md](docs/ai-lab.md) — models, measured benchmarks, and hardware notes.
 
 ## Hosts
 
@@ -108,7 +110,7 @@ nixos-lab/
 │   │   │   └── users.nix            # User definitions
 │   │   │
 │   │   └── optional/                # Opt-in modules
-│   │       ├── desktop/             # Niri, audio, fonts, apps
+│   │       ├── desktop/             # MangoWM, greetd, audio, fonts, apps
 │   │       ├── gaming/              # Steam, GameMode, Vulkan
 │   │       ├── hardware/            # AMD, Bluetooth, Framework, DisplayLink (inactive)
 │   │       ├── networking/          # Firewall, NordVPN, SSH, WiFi, WireGuard, Syncthing, sops
@@ -123,7 +125,7 @@ nixos-lab/
 ├── home/
 │   ├── <user>/                         # Home Manager entry point
 │   └── common/optional/             # HM modules
-│       ├── desktop/                 # Niri, Waybar, Fuzzel, Mako, etc.
+│       ├── desktop/                 # MangoWM + Noctalia shell, yazi, etc.
 │       ├── security/                # YubiKey user-level config
 │       ├── theme.nix                # Catppuccin Macchiato
 │       └── user-packages.nix        # User applications
@@ -205,7 +207,7 @@ sudo nix-collect-garbage --delete-older-than 30d
 - **Single flake, multi-host**: shared modules reduce duplication; host-specific config via imports and `mkForce` overrides
 - **Stable + unstable overlay**: `nixpkgs-25.11` base with `pkgs.unstable.<pkg>` for select packages
 - **Filesystem-agnostic modules**: device paths and UUIDs live exclusively in `hardware-configuration.nix` (generated per-host by the installer)
-- **Niri compositor**: scrollable tiling Wayland on all desktop hosts
+- **MangoWM compositor + Noctalia shell**: Wayland desktop on all desktop hosts (greetd + tuigreet login, defaults to the Mango session)
 - **Catppuccin Macchiato**: system-wide theming via Home Manager
 - **WireGuard-only SSH**: `openFirewall = false` on SSH/Mosh services, port 22 opened only on `wg0` interface — no LAN SSH exposure
 - **Two-layer secrets**: git-crypt for build-time values (IPs, public keys), sops-nix for runtime secrets (private keys) — different trust boundaries, appropriate tooling for each
@@ -236,6 +238,21 @@ IPs and keys are in `secrets/network.nix`. The network topology:
 - git-crypt for build-time secrets (network config), sops-nix for runtime secrets (private keys)
 - Kernel hardening with loose rp_filter for WireGuard compatibility
 - NordVPN via WireGuard (wgnord)
+
+## AI Lab
+
+A self-hosted, local-first AI stack running entirely on consumer AMD hardware over the
+WireGuard mesh — LLMs, embeddings, and image generation, no cloud inference. The server
+(Ryzen AI Max+ 395, `gfx1151` iGPU) runs the model tier; the workstation (RX 9070 XT,
+`gfx1201`) is a dedicated image-generation render node.
+
+Headline: a Mixture-of-Experts model (`qwen3:30b-a3b`) hits **~62 tok/s** on the
+server's iGPU — faster than the 7B dense models while carrying 30B-class knowledge —
+and FLUX.1-schnell generates a 1024×1024 image in **~6.7 s** warm on the workstation.
+
+See **[docs/ai-lab.md](docs/ai-lab.md)** for the full model roster (with per-model
+purpose/strengths), measured benchmarks, use cases, and the AMD ROCm gotchas. Benchmark
+scripts are in [`ai-lab/bench/`](ai-lab/bench/).
 
 ## Claude Code Integration
 

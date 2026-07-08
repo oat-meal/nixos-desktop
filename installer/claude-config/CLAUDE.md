@@ -86,7 +86,7 @@ Record audit results in the host's doc file (`docs/audit/<host>.md`).
 
 - **Module priority**: Use `lib.mkDefault` for common defaults, `lib.mkForce` for host overrides
 - **Unstable packages**: Access via `pkgs.unstable.<package>` (overlay defined in flake.nix)
-- **Desktop**: Niri scrollable tiling Wayland compositor on all desktop hosts
+- **Desktop**: MangoWM Wayland compositor + Noctalia shell on all desktop hosts
 - **Theme**: Catppuccin Macchiato system-wide
 - **Browser**: Zen Browser (sole browser)
 - **Shell**: Zsh with Oh-My-Zsh
