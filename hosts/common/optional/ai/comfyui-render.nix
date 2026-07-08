@@ -1,13 +1,13 @@
-# ComfyUI — World Weaver render node (podman, ROCm 7.2 / gfx1201, RX 9070 XT).
+# ComfyUI — workstation image-generation render node (podman, ROCm 7.2 / gfx1201, RX 9070 XT).
 #
 # A dedicated second ComfyUI on the workstation's discrete GPU, separate from the
-# server's gfx1151 instance (../ai/comfyui.nix). The server keeps serving the lab
-# (Open WebUI / SillyTavern); this one gives World Weaver a fast, dedicated GPU and
-# takes image generation OFF the shared server GPU (so Ollama and image gen stop
-# contending). Imported by hosts/workstation only.
+# server's gfx1151 instance (../ai/comfyui.nix). This gives image generation a fast,
+# dedicated GPU and takes it OFF the shared server GPU (so Ollama and image gen stop
+# contending). Imported by hosts/workstation only. See docs/ai-lab.md for the wider
+# image-generation capability and its consumers.
 #
-# Bound to LOOPBACK: the WW backend runs on this same host, so ComfyUI never needs to
-# be reachable off-box. (The server instance is wg0-bound; this one is 127.0.0.1.)
+# Bound to LOOPBACK: image-gen consumers run on this same host, so ComfyUI never needs
+# to be reachable off-box. (The server instance is wg0-bound; this one is 127.0.0.1.)
 #
 # Data: the full ComfyUI tree (core + custom_nodes code + models) lives on the
 # storage/comfyui dataset, rsynced from the server — see the deploy notes below.
@@ -19,13 +19,14 @@
   virtualisation.oci-containers.backend = "podman";
 
   # First start may build/load the ~18 GB image; default ~5 min is too short.
-  systemd.services.podman-comfyui-ww.serviceConfig.TimeoutStartSec = lib.mkForce "30min";
+  systemd.services.podman-comfyui-render.serviceConfig.TimeoutStartSec = lib.mkForce "30min";
 
-  virtualisation.oci-containers.containers.comfyui-ww = {
+  virtualisation.oci-containers.containers.comfyui-render = {
     # Locally-derived gfx1201 image — see ai-lab/comfyui/Containerfile.gfx1201 for the
-    # build command. localhost/ prefix = no registry pull.
+    # build command. localhost/ prefix = no registry pull. (The "-ww" in the tag is the
+    # existing build-artifact name; kept to avoid an 18 GB rebuild-just-to-retag.)
     image = "localhost/comfyui-gfx1201-ww:v2";
-    ports = [ "127.0.0.1:8188:8188" ];          # loopback only — WW backend is local
+    ports = [ "127.0.0.1:8188:8188" ];          # loopback only — consumers are local
     volumes = [ "/storage/comfyui:/opt/ComfyUI" ]; # full ComfyUI tree (rsynced from server)
 
     # RDNA4 stability: ComfyUI sees the HIP/ROCm card as "cuda:0" (HIP impersonates

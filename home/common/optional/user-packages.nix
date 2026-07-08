@@ -21,7 +21,7 @@
     godot_4                # Godot 4 engine (ships .desktop entry -> shows in Noctalia launcher)
 
     ######## User tools ########
-    # wl-clipboard, htop, ripgrep provided by system packages (core/niri)
+    # wl-clipboard, htop, ripgrep provided by system packages (core/desktop)
     unzip                  # ZIP archive extraction
     gh                     # GitHub CLI
     yt-dlp                 # YouTube video downloader

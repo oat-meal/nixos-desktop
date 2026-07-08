@@ -24,7 +24,7 @@
     # Gaming
     ../common/optional/gaming
     ../common/optional/ai/eliteintel.nix
-    ../common/optional/ai/comfyui-ww.nix  # World Weaver render node (ComfyUI on the 9070 XT)
+    ../common/optional/ai/comfyui-render.nix  # image-gen render node (ComfyUI on the 9070 XT)
 
     # Hardware
     ../common/optional/hardware/amd.nix
