@@ -912,6 +912,31 @@ setup_config() {
     else
         info "No Nix parser available for syntax check — skipping"
     fi
+
+    # Commit the installer-generated host blocks (hostId + LUKS devices +
+    # luks.nix import) so git HEAD is authoritative — not just staged.
+    # Staging alone (the `git add -A` above) leaves these uncommitted, which
+    # (a) blocks `git pull --rebase` on later deploys and (b) is silently wiped
+    # by any `git reset --hard` / `git checkout .` used to unblock that pull.
+    # That is exactly how server-nixos lost its cryptroot LUKS block and booted
+    # with no passphrase prompt (rpool unimportable). A real commit survives
+    # resets and replays cleanly on rebase.
+    if git -C /mnt/etc/nixos diff --cached --quiet; then
+        info "No staged host-config changes to commit"
+    else
+        info "Committing installer-generated host config to git..."
+        if git -C /mnt/etc/nixos \
+            -c user.name="oat-meal" \
+            -c user.email="oat-meal@users.noreply.github.com" \
+            commit -q -m "${HOST}: installer-generated hardware config (hostId + LUKS devices)
+
+Auto-committed by installer/install.sh so the host-specific blocks live in
+HEAD, not just the index. Push to origin so the shared repo carries them."; then
+            success "Committed host config (HEAD now contains hostId + LUKS block)"
+        else
+            warn "git commit failed — push ${host_dir}/hardware-configuration.nix manually or it will be lost on the next deploy"
+        fi
+    fi
 }
 
 ################################
@@ -1106,6 +1131,11 @@ post_install() {
         echo "      nixos-install --flake /mnt/etc/nixos#${HOST} --no-root-password"
     fi
     echo -e "  ${GREEN}[x]${NC} hostId: $HOST_ID"
+    echo -e "  ${GREEN}[x]${NC} host config committed to git (hostId + LUKS block in HEAD)"
+    echo ""
+    echo -e "  ${YELLOW}!${NC} ${BOLD}Push this host's config to origin${NC} so the shared repo carries it"
+    echo -e "     (matches workstation/laptop; prevents the block being dropped on deploy):"
+    echo "       git -C /etc/nixos push"
     echo ""
 
     case "$HOST" in
