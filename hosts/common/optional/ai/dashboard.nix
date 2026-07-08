@@ -36,7 +36,6 @@ in
       {
         "AI Tools" = [
           { "Open WebUI" = { href = url 8080; siteMonitor = url 8080; description = "Chat · RAG · image gen"; icon = "open-webui.png"; }; }
-          { "SillyTavern" = { href = url 8002; siteMonitor = url 8002; description = "Roleplay · character cards"; icon = "sillytavern.png"; }; }
           { "ComfyUI" = { href = url 8188; siteMonitor = url 8188; description = "Image generation"; icon = "comfyui.png"; }; }
           { "SearXNG" = { href = url 8888; siteMonitor = url 8888; description = "Meta search"; icon = "searxng.png"; }; }
         ];
