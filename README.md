@@ -116,6 +116,7 @@ nixos-lab/
 │   │       ├── desktop/             # MangoWM, greetd, audio, fonts, apps
 │   │       ├── gaming/              # Steam, GameMode, Vulkan
 │   │       ├── hardware/            # AMD, Bluetooth, Framework, printing, DisplayLink (inactive)
+│   │       ├── monitoring/          # Post-rebuild verifier, AMD-stack smoke test, update advisor
 │   │       ├── networking/          # Firewall, NordVPN, SSH, WiFi, WireGuard, Syncthing, Tailscale, sops
 │   │       ├── power/               # Performance, portable, hibernate
 │   │       ├── security/            # LUKS/FIDO2, YubiKey, PAM U2F, sudo
@@ -143,7 +144,10 @@ nixos-lab/
 │   ├── openwebui/                   # Open WebUI custom tools
 │   ├── quorum/                      # Multi-model quorum CLI
 │   ├── rag/                         # RAG (ChromaDB + embeddings) CLI
-│   └── research/                    # Deep-research CLI (SearXNG → synthesize)
+│   ├── research/                    # Deep-research CLI (SearXNG → synthesize)
+│   ├── sentinel/                    # Nightly fleet-health + backup-integrity sentinel
+│   ├── smoke-test/                  # AMD ROCm stack smoke test
+│   └── update-advisor/              # Weekly flake-update risk advisor
 │
 └── docs/
     ├── ai-lab.md                    # AI stack: models, benchmarks, hardware notes
@@ -270,9 +274,15 @@ Headline: a Mixture-of-Experts model (`qwen3:30b-a3b`) hits **~62 tok/s** on the
 server's iGPU — faster than the 7B dense models while carrying 30B-class knowledge —
 and FLUX.1-schnell generates a 1024×1024 image in **~6.7 s** warm on the workstation.
 
+The lab also **self-monitors**: a nightly fleet-health + backup-integrity sentinel, a
+post-rebuild verifier, a daily AMD-stack smoke test, and a weekly flake-update advisor —
+all pushing to a private self-hosted ntfy hub (bridged into the desktops' notifications).
+Claude Code drives it through a read-only host-health MCP server (fleet health, backups,
+snapshots, flake status).
+
 See **[docs/ai-lab.md](docs/ai-lab.md)** for the full model roster (with per-model
-purpose/strengths), measured benchmarks, use cases, and the AMD ROCm gotchas. Benchmark
-scripts are in [`ai-lab/bench/`](ai-lab/bench/).
+purpose/strengths), measured benchmarks, use cases, the monitoring/MCP layer, and the AMD
+ROCm gotchas. Benchmark scripts are in [`ai-lab/bench/`](ai-lab/bench/).
 
 ## Claude Code Integration
 

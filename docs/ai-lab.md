@@ -141,6 +141,50 @@ All wg0-only:
   render node on the workstation).
 - **SearXNG** — private metasearch for the research tools.
 - **ChromaDB** — vector store for RAG.
+- **ntfy** — self-hosted push-notification hub (`:2586`), the lab's private alert channel.
+
+## Monitoring & operations
+
+The lab self-monitors and pushes alerts to the private ntfy hub (topic `lab-alerts`,
+bridged into the desktops' Noctalia notification center) — no cloud. Throughout, the
+local LLM only triages/summarizes; severities are assigned deterministically in code.
+
+- **fleet-sentinel** (server, nightly) — fleet health (failed units, disk, ZFS, journal
+  errors filtered against `docs/audit/known-states.md`) **plus backup integrity** (each
+  auto-snapshot dataset must have recent snapshots). `qwen3` annotates each finding and
+  writes the summary. → `/var/lib/fleet-sentinel/latest.md` + ntfy.
+- **post-rebuild verifier** (all hosts) — an activation hook checks for failed units
+  ~90 s after any rebuild → ntfy. Catches silent post-rebuild regressions.
+- **AMD-stack smoke test** (workstation, daily) — a 1-token Ollama gen (`gfx1151`) + a
+  tiny ComfyUI gen (`gfx1201`); alerts if either ROCm path breaks after an update.
+- **update advisor** (server, weekly) — previews `nix flake update` on a throwaway copy
+  of the flake (never switches), then `qwen3` gives a per-input risk briefing.
+
+**Backups** — ZFS auto-snapshots on a dedicated `rpool/storage/git` dataset (the bare
+git repos), every 15 min + hourly/daily/weekly/monthly; the sentinel's backup check
+guards against them silently stopping. Models/media are excluded (re-downloadable).
+
+## Claude Code MCP tools
+
+A read-only **host-health MCP server** (`ai-lab/mcp/host-health/`, invoked as
+`ssh server-nixos host-health-mcp`, loaded via the repo `.mcp.json`) exposes:
+
+| Tool | What it does |
+|------|--------------|
+| `pool_status` | ZFS pool health, capacity, last scrub |
+| `service_status` | systemd service state (key infra services) |
+| `journal_errors` | recent journal errors (server) |
+| `disk_usage` | ZFS dataset usage |
+| `ollama_models` | installed Ollama models |
+| `fleet_health` | one-shot health snapshot across all three hosts (uptime, failed units, disk, ZFS, generation) |
+| `fleet_service_status` | systemd service state per host |
+| `fleet_journal_errors` | recent journal errors per host |
+| `backup_status` | ZFS-snapshot backup integrity + last scrub, fleet-wide |
+| `flake_status` | days-since-update per flake input |
+| `zfs_snapshots` | list a dataset's snapshots (+ recover-a-file hint) |
+
+All read-only. Separately, `lab_quorum` / `lab_rag_query` / `lab_research`
+(`ai-lab/api/`) are exposed to Open WebUI as OpenAPI tools.
 
 ## Hardware notes / gotchas
 
