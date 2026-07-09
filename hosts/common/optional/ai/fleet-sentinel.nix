@@ -34,7 +34,7 @@ in
         "SENTINEL_MODEL=qwen3:30b-a3b"
         "KNOWN_STATES=/etc/nixos/docs/audit/known-states.md"
         "SENTINEL_REPORT=/var/lib/fleet-sentinel/latest.md"
-        # "NTFY_URL=https://ntfy.sh/<your-topic>"   # optional push target
+        "NTFY_URL=http://10.100.0.2:2586/lab-alerts"   # self-hosted ntfy (wg0)
       ];
       ExecStart = "${sentinel}/bin/fleet-sentinel";
     };

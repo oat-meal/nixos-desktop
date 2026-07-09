@@ -31,6 +31,22 @@ let
     ${pkgs.libnotify}/bin/notify-send "Screen recording" "Recording region to $dir"
     exec ${pkgs.wl-screenrec}/bin/wl-screenrec -g "$region" -f "$dir/rec-$(date +%Y%m%d-%H%M%S).mp4"
   '';
+
+  # Lab notification bridge: subscribe to the self-hosted ntfy `lab-alerts` topic
+  # (Claude Code hooks + fleet-sentinel + backup checks publish there) and render
+  # each message via notify-send → Noctalia's notification center. ntfy sets
+  # $message/$title/$priority in the env of the exec'd command.
+  ntfy-notify = pkgs.writeShellScript "ntfy-to-noctalia" ''
+    urg=normal
+    case "''${priority:-3}" in 4|5|max|urgent|high) urg=critical ;; 1|2|min|low) urg=low ;; esac
+    exec ${pkgs.libnotify}/bin/notify-send -a "Lab" -u "$urg" -i dialog-information "''${title:-Lab notification}" "''${message:-}"
+  '';
+  ntfy-bridge = pkgs.writeShellScript "lab-ntfy-bridge" ''
+    while :; do
+      ${pkgs.ntfy-sh}/bin/ntfy subscribe http://10.100.0.2:2586/lab-alerts ${ntfy-notify} || true
+      sleep 5   # reconnect after a dropped subscription (network blip / server restart)
+    done
+  '';
 in
 {
   imports = [ inputs.mango.hmModules.mango ];
@@ -50,6 +66,7 @@ in
     autostart_sh = ''
       "$HOME/.local/bin/wallpaper-power-switch" &
       ${nc} -d &
+      ${ntfy-bridge} &
     '';
 
     # Full config in mango's native format. See https://mangowm.github.io/docs
