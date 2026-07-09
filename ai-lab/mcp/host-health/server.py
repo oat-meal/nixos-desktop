@@ -4,6 +4,7 @@ import asyncio
 import json
 import re
 import subprocess
+import time
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("host-health")
@@ -282,6 +283,58 @@ def fleet_journal_errors(since: str = "24h ago", priority: str = "err",
         else:
             body = raw.strip() or "No entries matching criteria."
         blocks.append(f"## {h}\n{body}")
+    return "\n\n".join(blocks)
+
+
+@mcp.tool()
+def backup_status() -> str:
+    """Backup integrity across the wg0 fleet (ZFS-snapshot based).
+
+    For each ZFS dataset marked for auto-snapshot (com.sun:auto-snapshot=true),
+    reports its newest snapshot and how long ago it was taken. Flags datasets with
+    NO snapshots (backups not running) or a stale newest (>2h — the timer may have
+    stalled). Read-only. Also notes the last scrub per pool.
+    """
+    now = time.time()
+    props_cmd = "zfs get -H -t filesystem -o name,value com.sun:auto-snapshot 2>/dev/null"
+    snaps_cmd = "zfs list -t snapshot -H -p -o name,creation 2>/dev/null"
+    scrub_cmd = "zpool status 2>/dev/null | grep 'scan:'"
+    blocks = []
+    for h, ip in HOSTS.items():
+        props = run_on(ip, props_cmd)
+        if _unreachable(props):
+            if h == "laptop":
+                continue
+            blocks.append(f"## {h}\nUNREACHABLE: {props.strip()[:100]}")
+            continue
+        datasets = [l.split("\t")[0] for l in props.splitlines()
+                    if "\t" in l and l.rsplit("\t", 1)[-1] == "true"]
+        lines = [f"## {h}"]
+        if not datasets:
+            lines.append("  (no datasets marked for auto-snapshot)")
+        else:
+            newest = {}
+            for l in run_on(ip, snaps_cmd).splitlines():
+                p = l.split("\t")
+                if len(p) >= 2 and "@" in p[0]:
+                    ds = p[0].split("@", 1)[0]
+                    try:
+                        cr = int(p[1])
+                    except ValueError:
+                        continue
+                    if cr > newest.get(ds, 0):
+                        newest[ds] = cr
+            for ds in datasets:
+                cr = newest.get(ds)
+                if not cr:
+                    lines.append(f"  {ds}: NO SNAPSHOTS — backups not running!")
+                else:
+                    age = (now - cr) / 3600
+                    lines.append(f"  {ds}: newest {age:.1f}h ago" + (" (STALE!)" if age > 2 else ""))
+        scrub = run_on(ip, scrub_cmd)
+        if scrub and not _unreachable(scrub):
+            lines.append(f"  scrub: {scrub.strip().replace(chr(10), '; ')[:160]}")
+        blocks.append("\n".join(lines))
     return "\n\n".join(blocks)
 
 

@@ -61,6 +61,8 @@ def collect() -> dict:
         "echo @@@DISK@@@; df -h --output=target,pcent / /storage 2>/dev/null | tail -n +2; "
         "echo @@@ZFS@@@; zpool list -H -o name,cap,health 2>/dev/null; "
         "echo @@@GEN@@@; readlink -f /run/current-system 2>/dev/null | sed 's#.*/##'; "
+        "echo @@@SNAPPROPS@@@; zfs get -H -t filesystem -o name,value com.sun:auto-snapshot 2>/dev/null; "
+        "echo @@@SNAPS@@@; zfs list -t snapshot -H -p -o name,creation 2>/dev/null; "
         "echo @@@JOURNAL@@@; journalctl -p err --since '24 hours ago' --no-pager -o short 2>/dev/null "
         "| grep -avE 'split.lock|pulseaudio|gkr-pam|MES arb|amdgpu|pidns|gtk_widget_get_scale' | tail -12"
     )
@@ -96,8 +98,27 @@ def collect() -> dict:
             "zfs": [l.strip() for l in secs.get("ZFS", []) if l.strip()],
             "generation": first("GEN"),
             "journal_errors": [l.strip() for l in secs.get("JOURNAL", []) if l.strip()],
+            "autosnap_datasets": [l.split("\t")[0] for l in secs.get("SNAPPROPS", [])
+                                  if "\t" in l and l.rsplit("\t", 1)[-1] == "true"],
+            "snap_newest": _newest_snaps(secs.get("SNAPS", [])),
         }
     return out
+
+
+def _newest_snaps(lines: list) -> dict:
+    """{dataset: newest snapshot creation epoch} from `zfs list -t snapshot -p`."""
+    newest = {}
+    for l in lines:
+        p = l.split("\t")
+        if len(p) >= 2 and "@" in p[0]:
+            ds = p[0].split("@", 1)[0]
+            try:
+                cr = int(p[1])
+            except ValueError:
+                continue
+            if cr > newest.get(ds, 0):
+                newest[ds] = cr
+    return newest
 
 
 def _pct(token: str) -> int | None:
@@ -139,6 +160,16 @@ def analyze(health: dict) -> list:
                     add(h, "critical", f"ZFS pool {name} at {cap}% capacity")
                 elif cap is not None and cap > DISK_WARN:
                     add(h, "warning", f"ZFS pool {name} at {cap}% capacity")
+        # backup integrity: a dataset marked for auto-snapshot must have recent snapshots
+        newest = v.get("snap_newest", {})
+        for ds in v.get("autosnap_datasets", []):
+            cr = newest.get(ds)
+            if not cr:
+                add(h, "critical", f"{ds}: marked for auto-snapshot but has NO snapshots — backups are not running")
+            else:
+                age_h = (datetime.now().timestamp() - cr) / 3600
+                if age_h > 2:
+                    add(h, "warning", f"{ds}: newest snapshot is {age_h:.1f}h old — auto-snapshot may have stalled")
     return findings
 
 
