@@ -32,6 +32,12 @@
   ################################
   programs.dconf.enable = true;
 
+  # Fix the boot-time Home Manager dconf activation. home-manager-<user>.service runs at
+  # activation with a stripped env (no session bus), so HM wraps `dconf load` in an ephemeral
+  # dbus-run-session — which can only resolve the dconf D-Bus service (ca.desrt.dconf) if
+  # XDG_DATA_DIRS points at dconf's share. Without this the unit fails on `dconfSettings`.
+  systemd.services."home-manager-oat".environment.XDG_DATA_DIRS = "${pkgs.dconf}/share";
+
   ################################
   ## GNOME Keyring (credential storage)
   ################################
