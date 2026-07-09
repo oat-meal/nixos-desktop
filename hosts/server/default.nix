@@ -28,6 +28,8 @@
 
     # Storage
     ../common/optional/storage/zfs-maintenance.nix
+    ../common/optional/monitoring/post-rebuild-verify.nix
+    ../common/optional/monitoring/update-advisor.nix
 
     # AI lab
     ../common/optional/ai/mcp-host-health.nix

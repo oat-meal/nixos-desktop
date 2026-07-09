@@ -1,0 +1,49 @@
+# Weekly flake-update advisor (read-only).
+#
+# Runs ai-lab/update-advisor/update_advisor.py as oat: on a throwaway copy of the
+# flake it runs `nix flake update`, diffs which direct inputs would bump, and asks
+# qwen3 for a risk briefing tuned to this AMD ROCm + gaming lab. Writes a report
+# and pings the ntfy hub when updates are available. Never touches the real flake
+# or switches anything. Imported by hosts/server (always-on → the timer fires).
+
+{ pkgs, ... }:
+
+let
+  advisor = pkgs.writeShellScriptBin "update-advisor" ''
+    export PATH=/run/current-system/sw/bin:$PATH
+    exec ${pkgs.python3}/bin/python ${../../../../ai-lab/update-advisor/update_advisor.py} "$@"
+  '';
+in
+{
+  environment.systemPackages = [ advisor ];   # also runnable on demand
+
+  systemd.services.update-advisor = {
+    description = "Flake-update advisor (preview + LLM risk briefing, read-only)";
+    after = [ "network-online.target" "ollama.service" ];
+    wants = [ "network-online.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      User = "oat";
+      StateDirectory = "update-advisor";
+      TimeoutStartSec = "1200";   # `nix flake update` fetches inputs + the LLM call
+      Environment = [
+        "NIXOS_DIR=/etc/nixos"
+        "OLLAMA_HOST_URL=http://10.100.0.2:11434"
+        "ADVISOR_MODEL=qwen3:30b-a3b"
+        "ADVISOR_REPORT=/var/lib/update-advisor/latest.md"
+        "NTFY_URL=http://10.100.0.2:2586/lab-alerts"
+      ];
+      ExecStart = "${advisor}/bin/update-advisor";
+    };
+  };
+
+  systemd.timers.update-advisor = {
+    description = "Weekly flake-update advisor";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "Mon 09:00";
+      Persistent = true;
+      RandomizedDelaySec = "30m";
+    };
+  };
+}
