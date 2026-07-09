@@ -47,6 +47,7 @@
 
     # Storage
     ../common/optional/storage/zfs-maintenance.nix
+    ../common/optional/monitoring/post-rebuild-verify.nix
   ];
 
   ################################

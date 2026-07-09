@@ -10,6 +10,7 @@ modules/experimental-packages.nix
 # Lab CONTENT — kept private/on-prem, never pushed to this public infra repo.
 # (See CLAUDE.md "What belongs in this repo". A pre-commit hook also guards these.)
 ai-lab/comfyui/workflows/
+ai-lab/sillytavern/            # removed service; any lingering character cards stay private
 # Content file types, wherever they land
 *.png
 *.jpg

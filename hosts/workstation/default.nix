@@ -49,6 +49,8 @@
 
     # Storage
     ../common/optional/storage/zfs-maintenance.nix
+    ../common/optional/monitoring/post-rebuild-verify.nix
+    ../common/optional/monitoring/stack-smoke-test.nix
   ];
 
   ################################
