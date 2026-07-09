@@ -20,6 +20,7 @@
     ../common/optional/desktop/audio.nix
     ../common/optional/desktop/fonts.nix
     ../common/optional/desktop/apps.nix
+    ../common/optional/desktop/sunshine.nix  # game-stream host → Moonlight on laptop (wg0)
 
     # Gaming
     ../common/optional/gaming

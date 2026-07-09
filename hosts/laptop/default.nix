@@ -84,4 +84,10 @@
   ## User groups
   ################################
   users.users.oat.extraGroups = lib.mkAfter [ "audio" "video" "input" "gamemode" ];
+
+  ################################
+  ## Moonlight — game-stream client for the workstation's Sunshine host (wg0)
+  ################################
+  # For remote playtest: connect to workstation-nixos (10.100.0.1).
+  environment.systemPackages = [ pkgs.moonlight-qt ];
 }
