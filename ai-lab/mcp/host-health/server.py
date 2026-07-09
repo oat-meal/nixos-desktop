@@ -338,5 +338,51 @@ def backup_status() -> str:
     return "\n\n".join(blocks)
 
 
+@mcp.tool()
+def flake_status() -> str:
+    """Flake input freshness — for each direct input in /etc/nixos/flake.lock, how
+    many days since it was last updated (higher = more stale). Read-only. The weekly
+    update-advisor report has a full risk briefing on what updating would change.
+    """
+    try:
+        lock = json.loads(open("/etc/nixos/flake.lock").read())
+    except OSError as e:
+        return f"ERROR: {e}"
+    root = lock["nodes"][lock["root"]].get("inputs", {})
+    lines = ["input                 age (days since last update)"]
+    for name, ref in sorted(root.items()):
+        nn = ref if isinstance(ref, str) else ref[0]
+        lm = lock["nodes"].get(nn, {}).get("locked", {}).get("lastModified", 0)
+        age = int((time.time() - lm) / 86400) if lm else None
+        lines.append(f"{name:<20}  {age if age is not None else '?'}")
+    return "\n".join(lines)
+
+
+@mcp.tool()
+def zfs_snapshots(dataset: str = "", limit: int = 25) -> str:
+    """List ZFS snapshots on the server (newest first) with space used + creation
+    time. Optionally filter to a dataset (e.g. 'rpool/storage/git'). Read-only.
+
+    To recover a file, browse the snapshot's `.zfs/snapshot/<snap>/` directory under
+    the dataset's mountpoint and copy the file back out — this tool never modifies
+    anything.
+
+    Args:
+        dataset: optional dataset to filter (recursive). Default: all.
+        limit: max snapshots to list. Default 25.
+    """
+    base = "zfs list -t snapshot -o name,used,creation -S creation -H"
+    cmd = (f"{base} -r {dataset}" if dataset else base) + " 2>/dev/null"
+    raw = run_on(None, cmd)
+    if raw.startswith("ERROR"):
+        return raw
+    snaps = [l for l in raw.splitlines() if "@" in l][:limit]
+    if not snaps:
+        return f"No snapshots found{(' for ' + dataset) if dataset else ''}."
+    out = ["SNAPSHOT\tUSED\tCREATED", *snaps, "",
+           "Recover a file: cp <dataset-mountpoint>/.zfs/snapshot/<snap>/<relpath> <dest>"]
+    return "\n".join(out)
+
+
 if __name__ == "__main__":
     mcp.run(transport="stdio")
