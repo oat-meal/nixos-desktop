@@ -31,6 +31,7 @@
 
     # AI lab
     ../common/optional/ai/mcp-host-health.nix
+    ../common/optional/ai/fleet-sentinel.nix
     ../common/optional/ai/open-webui.nix
     ../common/optional/ai/searxng.nix
     ../common/optional/ai/chromadb.nix

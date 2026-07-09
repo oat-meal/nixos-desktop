@@ -1,0 +1,52 @@
+# Fleet Health Sentinel — nightly LLM triage of wg0 fleet health.
+#
+# Runs ai-lab/sentinel/sentinel.py as oat on the server: collects a health
+# snapshot from all three hosts over wg0, has the local qwen3 MoE triage it
+# against docs/audit/known-states.md, and writes a severity-ranked report to
+# /var/lib/fleet-sentinel/latest.md (plus a journal summary; optional ntfy push).
+# READ-ONLY — it never changes any host. Imported by hosts/server only.
+
+{ pkgs, ... }:
+
+let
+  # Stdlib only — no extra Python deps.
+  sentinel = pkgs.writeShellScriptBin "fleet-sentinel" ''
+    export PATH=/run/current-system/sw/bin:$PATH
+    exec ${pkgs.python3}/bin/python ${../../../../ai-lab/sentinel/sentinel.py} "$@"
+  '';
+in
+{
+  # Also available as a manual command: `fleet-sentinel`.
+  environment.systemPackages = [ sentinel ];
+
+  systemd.services.fleet-sentinel = {
+    description = "Fleet health sentinel (collect + LLM triage, read-only)";
+    after = [ "network-online.target" "ollama.service" ];
+    wants = [ "network-online.target" ];
+    path = [ pkgs.openssh ];              # ssh to workstation/laptop over wg0
+    serviceConfig = {
+      Type = "oneshot";
+      User = "oat";                       # uses oat's ssh keys + systemd-journal group
+      StateDirectory = "fleet-sentinel";  # /var/lib/fleet-sentinel (oat-owned)
+      TimeoutStartSec = "300";            # model load + triage headroom
+      Environment = [
+        "OLLAMA_HOST_URL=http://10.100.0.2:11434"
+        "SENTINEL_MODEL=qwen3:30b-a3b"
+        "KNOWN_STATES=/etc/nixos/docs/audit/known-states.md"
+        "SENTINEL_REPORT=/var/lib/fleet-sentinel/latest.md"
+        # "NTFY_URL=https://ntfy.sh/<your-topic>"   # optional push target
+      ];
+      ExecStart = "${sentinel}/bin/fleet-sentinel";
+    };
+  };
+
+  systemd.timers.fleet-sentinel = {
+    description = "Nightly fleet health sentinel";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "*-*-* 07:30:00";
+      Persistent = true;                  # run on boot if a scheduled run was missed
+      RandomizedDelaySec = "5m";
+    };
+  };
+}
