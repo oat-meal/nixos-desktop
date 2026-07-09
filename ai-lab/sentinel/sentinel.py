@@ -60,7 +60,9 @@ def collect() -> dict:
         "echo @@@FAILED@@@; systemctl --failed --no-legend --no-pager 2>/dev/null; "
         "echo @@@DISK@@@; df -h --output=target,pcent / /storage 2>/dev/null | tail -n +2; "
         "echo @@@ZFS@@@; zpool list -H -o name,cap,health 2>/dev/null; "
-        "echo @@@GEN@@@; readlink -f /run/current-system 2>/dev/null | sed 's#.*/##'"
+        "echo @@@GEN@@@; readlink -f /run/current-system 2>/dev/null | sed 's#.*/##'; "
+        "echo @@@JOURNAL@@@; journalctl -p err --since '24 hours ago' --no-pager -o short 2>/dev/null "
+        "| grep -avE 'split.lock|pulseaudio|gkr-pam|MES arb|amdgpu|pidns|gtk_widget_get_scale' | tail -12"
     )
     out = {}
     for h, ip in HOSTS.items():
@@ -93,6 +95,7 @@ def collect() -> dict:
             "disk": [l.strip() for l in secs.get("DISK", []) if l.strip()],
             "zfs": [l.strip() for l in secs.get("ZFS", []) if l.strip()],
             "generation": first("GEN"),
+            "journal_errors": [l.strip() for l in secs.get("JOURNAL", []) if l.strip()],
         }
     return out
 
@@ -144,39 +147,59 @@ ENRICH_SCHEMA = {
     "properties": {
         "summary": {"type": "string"},
         "actions": {"type": "array", "items": {"type": "string"}},
+        "journal_findings": {"type": "array", "items": {
+            "type": "object",
+            "properties": {
+                "host": {"type": "string"},
+                "severity": {"type": "string", "enum": ["info", "warning"]},
+                "finding": {"type": "string"},
+                "suggested_action": {"type": "string"},
+            },
+            "required": ["host", "severity", "finding", "suggested_action"],
+        }},
     },
-    "required": ["summary", "actions"],
+    "required": ["summary", "actions", "journal_findings"],
 }
 
 ENRICH_SYSTEM = """You are a site-reliability engineer for a personal NixOS home lab (hosts: \
-server, workstation, laptop; private WireGuard mesh). You are given a JSON array of FINDINGS that \
-deterministic checks already classified by severity. You must NOT re-classify, add, or remove any \
-finding — the list is authoritative.
+server, workstation, laptop; private WireGuard mesh). You receive JSON with two parts:
+1) `deterministic_findings`: findings ALREADY severity-classified by code. You must NOT add, remove, \
+or re-classify them — the list is authoritative.
+2) `journal_errors_by_host`: raw recent journal error lines per host. These are noisy and MOST are \
+benign/transient.
 
-Return:
-- `actions`: an array with EXACTLY one entry per finding, in the same order. actions[i] is a single \
-concrete READ-ONLY diagnostic command to investigate findings[i] (a command to inspect only; never \
-destructive or state-changing). If a finding clearly matches an expected KNOWN STATE below, still \
-give an action but prefix it with "(likely expected) ".
-- `summary`: one sentence on the fleet's overall health.
+Return JSON:
+- `actions`: EXACTLY one entry per deterministic finding, same order — a single concrete READ-ONLY \
+diagnostic command to inspect findings[i] (never destructive). If a finding clearly matches an \
+expected KNOWN STATE below, prefix its action with "(likely expected) ".
+- `journal_findings`: ONLY the journal errors genuinely worth attention that are NOT explained by the \
+KNOWN STATES below. Omit noise, expected states, and transient/cosmetic messages. Each: {host, \
+severity ("info" or "warning" ONLY — never critical), a concise finding, a read-only suggested_action}. \
+If nothing in the journals is notable, return an empty array.
+- `summary`: one sentence reflecting the ACTUAL overall state — do NOT say "healthy" if there are any \
+warnings or criticals.
 
-KNOWN STATES (expected anomalies):
+KNOWN STATES (treat matching lines/findings as expected; do not surface them):
 {known_states}
 """
 
 
-def enrich(candidates: list) -> dict:
-    """LLM: drop known-state matches, add read-only actions, write a summary."""
+def enrich(candidates: list, journal_by_host: dict) -> dict:
+    """LLM: annotate deterministic findings with read-only actions, triage journal
+    errors against known-states into findings, and write a summary. It cannot alter
+    the deterministic findings' host/severity/text."""
     try:
         known = open(KNOWN_STATES).read()
     except OSError:
         known = "(known-states file not found)"
+    payload = {"deterministic_findings": candidates,
+               "journal_errors_by_host": journal_by_host}
     body = {
         "model": MODEL, "stream": False, "think": False,
         "format": ENRICH_SCHEMA, "options": {"temperature": 0.1},
         "messages": [
-            {"role": "system", "content": ENRICH_SYSTEM.format(known_states=known)},
-            {"role": "user", "content": "Candidate findings:\n" + json.dumps(candidates, indent=2)},
+            {"role": "system", "content": ENRICH_SYSTEM.replace("{known_states}", known)},
+            {"role": "user", "content": json.dumps(payload, indent=2)},
         ],
     }
     req = urllib.request.Request(
@@ -222,25 +245,33 @@ def main():
     ts = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
     health = collect()
     candidates = analyze(health)
+    journal_by_host = {h: v["journal_errors"] for h, v in health.items()
+                       if v.get("journal_errors")}
 
-    if not candidates:
+    if not candidates and not any(journal_by_host.values()):
         verdict = {"overall_status": "healthy",
-                   "summary": "All hosts reachable; no disk, ZFS, or unit issues.",
+                   "summary": "All hosts reachable; no disk, ZFS, unit, or journal issues.",
                    "findings": []}
     else:
-        # Deterministic findings are authoritative; the LLM only annotates them
-        # (one diagnostic action each) and writes a summary — it cannot add/drop.
-        summary = ""
+        # Deterministic findings are authoritative (LLM annotates only). The LLM may
+        # surface journal-derived findings, but capped at <=warning and filtered by
+        # known-states — it can never add/drop/reclassify the deterministic ones.
+        summary, journal_findings = "", []
         try:
-            enriched = enrich(candidates)
+            enriched = enrich(candidates, journal_by_host)
             actions = enriched.get("actions", [])
             summary = enriched.get("summary", "")
+            journal_findings = enriched.get("journal_findings", [])
         except Exception as e:  # degrade gracefully — never crash the timer
             actions, summary = [], f"(LLM enrichment failed: {e})"
         for i, c in enumerate(candidates):
             c["suggested_action"] = actions[i] if i < len(actions) else ""
-        verdict = {"overall_status": _overall(candidates),
-                   "summary": summary, "findings": candidates}
+        for jf in journal_findings:  # guardrail: journal noise is never critical
+            if jf.get("severity") not in ("info", "warning"):
+                jf["severity"] = "warning"
+        findings = candidates + journal_findings
+        verdict = {"overall_status": _overall(findings),
+                   "summary": summary, "findings": findings}
 
     report = render(health, verdict, ts)
     os.makedirs(os.path.dirname(REPORT), exist_ok=True)
