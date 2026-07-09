@@ -71,6 +71,13 @@ in
 
     # Full config in mango's native format. See https://mangowm.github.io/docs
     extraConfig = ''
+      # ---------------- Displays (HiDPI scaling) ----------------
+      # Framework 13 internal panel is 2880x1920 on a 13.5" screen (~250 PPI);
+      # at scale 1.0 everything renders tiny. Scale 1.5 → logical 1920x1280,
+      # sharp (native mode kept) and ~50% larger UI across all apps.
+      # Anchored to ^eDP-1$ so it's a no-op on hosts without that output.
+      monitorrule=name:^eDP-1$,scale:1.5
+
       # ---------------- Appearance ----------------
       gappih=8
       gappiv=8
