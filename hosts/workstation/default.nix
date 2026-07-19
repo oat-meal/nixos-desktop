@@ -63,7 +63,11 @@
   ################################
   ## Kernel
   ################################
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  # Pinned to the 7.0 line (was linuxPackages_latest). The WCN785x Wi-Fi 7 card
+  # relies on the bleeding-edge in-tree ath12k_wifi7 driver, so an implicit
+  # kernel bump from a flake update can silently break WiFi. Pinning keeps the
+  # kernel stable; bump this attr deliberately (and test WiFi) when wanted.
+  boot.kernelPackages = pkgs.linuxPackages_7_0;
   boot.consoleLogLevel = 1;
 
   # Desktop-specific kernel params (gaming optimized)
@@ -179,6 +183,74 @@
         sleep 2
       '';
       TimeoutStopSec = "15s";
+    };
+  };
+
+  ################################
+  ## WiFi warm-reboot auto-recovery (ath12k WCN785x firmware-init failure)
+  ################################
+  # The WCN785x (FastConnect 7800) intermittently fails QMI/firmware init after
+  # a warm reboot: the PCIe function stops responding and the OS reports the
+  # WiFi hardware as "missing" until a cold power cycle. This unit runs at boot
+  # and, ONLY when no wlp16s0 interface came up, escalates recovery:
+  #   1) unbind + rebind the PCI driver (firmware init failed, function on bus)
+  #   2) reload the ath12k module stack
+  #   3) PCI remove + bus rescan (function dropped off the bus)
+  # It no-ops when WiFi is already present, so a healthy boot is left untouched.
+  systemd.services.wifi-ath12k-recovery = {
+    description = "Recover ath12k WiFi if the WCN785x failed to initialize";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "systemd-udev-settle.service" ];
+    wants = [ "systemd-udev-settle.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = pkgs.writeShellScript "wifi-ath12k-recovery" ''
+        set -u
+        IFACE=wlp16s0
+        PCI=0000:10:00.0
+        DRV=/sys/bus/pci/drivers/ath12k_wifi7_pci
+
+        have_iface() { [ -e "/sys/class/net/$IFACE" ]; }
+
+        if have_iface; then
+          echo "ath12k: $IFACE present, no recovery needed"
+          exit 0
+        fi
+
+        echo "ath12k: $IFACE missing — attempting recovery"
+
+        # 1) unbind + rebind the PCI driver (function still on the bus)
+        if [ -e "$DRV/$PCI" ]; then
+          echo "ath12k: unbind/rebind $PCI"
+          echo "$PCI" > "$DRV/unbind" 2>/dev/null || true
+          sleep 1
+          echo "$PCI" > "$DRV/bind" 2>/dev/null || true
+          sleep 3
+          have_iface && { echo "ath12k: recovered via rebind"; exit 0; }
+        fi
+
+        # 2) reload the module stack
+        echo "ath12k: reloading module stack"
+        ${pkgs.kmod}/bin/modprobe -r ath12k_wifi7 2>/dev/null || true
+        ${pkgs.kmod}/bin/modprobe -r ath12k 2>/dev/null || true
+        sleep 1
+        ${pkgs.kmod}/bin/modprobe ath12k_wifi7 2>/dev/null || true
+        sleep 3
+        have_iface && { echo "ath12k: recovered via module reload"; exit 0; }
+
+        # 3) re-enumerate the PCIe function
+        echo "ath12k: PCI remove + rescan"
+        [ -e "/sys/bus/pci/devices/$PCI/remove" ] && \
+          echo 1 > "/sys/bus/pci/devices/$PCI/remove" 2>/dev/null || true
+        sleep 1
+        echo 1 > /sys/bus/pci/rescan 2>/dev/null || true
+        sleep 3
+        have_iface && { echo "ath12k: recovered via PCI rescan"; exit 0; }
+
+        echo "ath12k: recovery failed — a cold power cycle may be required"
+        exit 0
+      '';
     };
   };
 
