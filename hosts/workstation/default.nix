@@ -260,7 +260,19 @@
   fileSystems."/mnt/server" = {
     device = "10.100.0.2:/storage";
     fsType = "nfs";
-    options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
+    # hard mount (implicit default) for data integrity; fast-fail so touching
+    # /mnt/server while the server is offline errors in ~10s instead of hanging
+    # Thunar for minutes. Re-mounts automatically on next access when server is up.
+    options = [
+      "x-systemd.automount"
+      "noauto"
+      "_netdev"
+      "x-systemd.idle-timeout=600"
+      "x-systemd.mount-timeout=10s"  # systemd cancels the mount job after 10s
+      "retry=0"                       # mount.nfs: fail now, no 2-min fg retry loop
+      "timeo=50"                      # 5s per-RPC timeout (deciseconds)
+      "retrans=2"                     # 2 retries before "server not responding"
+    ];
   };
 
   ################################
