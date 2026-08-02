@@ -65,8 +65,15 @@
   ################################
   # Pinned to the 7.0 line (was linuxPackages_latest). The WCN785x Wi-Fi 7 card
   # relies on the bleeding-edge in-tree ath12k_wifi7 driver, so an implicit
-  # kernel bump from a flake update can silently break WiFi. Pinning keeps the
-  # kernel stable; bump this attr deliberately (and test WiFi) when wanted.
+  # kernel bump from a flake update can silently break WiFi.
+  #
+  # KNOWN-GOOD: 7.0.10. CONFIRMED BROKEN: 7.0.14 (2026-08-02) — ath12k_wifi7_pci
+  # fails QMI handle init with -517 (EPROBE_DEFER), no wlp16s0. The qrtr softdep
+  # below did NOT fix it, so it's a real driver/firmware regression, not just
+  # module ordering. flake.lock is therefore held at the 7.0.10 nixpkgs rev.
+  # MONTHLY-REVIEW CHECK: when a kernel > 7.0.14 is available, test a flake update
+  # on a `nixos-rebuild boot` gen + reboot; if wlp16s0 comes up, unpin. See
+  # docs/audit/workstation.md.
   boot.kernelPackages = pkgs.linuxPackages_7_0;
   boot.consoleLogLevel = 1;
 
@@ -90,9 +97,28 @@
     "split_lock_detect=off"
   ];
 
+  # ath12k QMI init requires the qrtr (Qualcomm IPC Router) modules loaded first.
+  # CONFIG_QRTR=m, and on some kernels (observed: 7.0.14) qrtr is not auto-loaded
+  # before the ath12k_wifi7 probe, so the WCN785x fails QMI handle init with -517
+  # (EPROBE_DEFER) and no wlp16s0 appears. Force-loading qrtr + qrtr_mhi lets the
+  # deferred probe complete — the kernel-version-independent fix for the
+  # "kernel bump breaks WiFi" symptom (vs. freezing the kernel).
   boot.kernelModules = [
     "ath12k_pci"
+    "qrtr"
+    "qrtr_mhi"
   ];
+
+  # ...but kernelModules alone isn't enough: udev autoloads ath12k_wifi7_pci on PCI
+  # match BEFORE systemd-modules-load runs, so ath12k probes before qrtr is up and
+  # fails QMI init with -517. On 7.0.10 ath12k pulled qrtr automatically; 7.0.14
+  # lost that linkage. This softdep restores it — modprobe loads qrtr FIRST whenever
+  # ath12k is loaded, regardless of trigger (udev, kernelModules, manual).
+  boot.extraModprobeConfig = ''
+    softdep ath12k_wifi7_pci pre: qrtr qrtr_mhi
+    softdep ath12k_wifi7 pre: qrtr qrtr_mhi
+    softdep ath12k_pci pre: qrtr qrtr_mhi
+  '';
 
   ################################
   ## Anti-cheat (EAC) override

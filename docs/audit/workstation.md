@@ -7,7 +7,7 @@
 - **RAM**: 64GB DDR5
 - **Storage**: ZFS on LUKS2 (rpool: ROOT/nixos, home, nix, log, swap zvol) + storage pool (2x NVMe LUKS2)
 - **Network**: WiFi 7 (Qualcomm WCN785x, ath12k) + 5GbE Ethernet (RTL8126)
-- **Kernel**: `linuxPackages_latest` (RDNA 4 requires recent kernel)
+- **Kernel**: `linuxPackages_7_0` — pinned at 7.0.10 (WCN785x WiFi; see Known Issues)
 
 ## Host-Specific Configuration
 
@@ -20,6 +20,19 @@
 - **DisplayLink**: EVDI module for USB displays
 - **nix-ld**: Enabled for Fightcade, AppImages
 - **Flatpak**: Enabled (Fightcade)
+
+## Known Issues / Deferred Updates (monthly-review checks)
+
+- **Kernel pinned at 7.0.10 — WCN785x WiFi breaks on 7.0.14** (found 2026-08-02).
+  A flake update moved `linuxPackages_7_0` from 7.0.10 → 7.0.14; on 7.0.14 the
+  `ath12k_wifi7_pci` driver fails QMI handle init with `-517` (EPROBE_DEFER) and
+  no `wlp16s0` appears. A `qrtr`/`qrtr_mhi` softdep (kept in `hosts/workstation/default.nix`)
+  did NOT fix it → genuine driver/firmware regression, not module ordering.
+  **Action taken:** `flake.lock` held at the 7.0.10 nixpkgs rev (`25f5383`); the rest
+  of that update (EliteIntel 0032, electron insecure-permit) was kept.
+  **MONTHLY-REVIEW CHECK:** when nixpkgs offers a kernel **> 7.0.14**, test a full
+  flake update via `nixos-rebuild boot` + reboot; if `wlp16s0` comes up, drop the
+  pin/hold. Track upstream: ath12k WCN7850 `-517` QMI regression.
 
 ## Filesystem
 

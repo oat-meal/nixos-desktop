@@ -16,14 +16,14 @@
 }:
 
 let
-  version = "1.0.0022";
+  version = "1.0.0032";
 
   assets = stdenv.mkDerivation {
     pname = "eliteintel-assets";
     inherit version;
     src = fetchurl {
       url = "https://github.com/stone-alex/EliteIntel/releases/download/v-${version}/elite_intel_-${version}.zip";
-      hash = "sha256-3w8ThF8aCiA3pFdoBhzQKpYyWy5lMVqd9aO9+3djeZA=";
+      hash = "sha256-7/VEDST1YR3IHTWtU25XD9D7w7bi6WgbAAZqpE6U3xY=";
     };
     nativeBuildInputs = [ unzip autoPatchelfHook ];
     buildInputs = [ stdenv.cc.cc.lib ]; # libstdc++/libgcc_s for sherpa-onnx
