@@ -21,8 +21,13 @@ in
 
   systemd.services.fleet-sentinel = {
     description = "Fleet health sentinel (collect + LLM triage, read-only)";
+    # Order after the network is up, but do NOT `wants` it: a timer-driven monitor
+    # must never pull network-online.target into the boot transaction (with a
+    # Persistent catch-up run that reorders boot). Doing so on the workstation
+    # raced the WCN7850 WiFi firmware init and wedged the card — see
+    # docs/audit/postmortem-2026-08-wcn7850-wifi.md. `after` alone still orders
+    # the daily run correctly (network-online is reached by the network stack).
     after = [ "network-online.target" "ollama.service" ];
-    wants = [ "network-online.target" ];
     path = [ pkgs.openssh ];              # ssh to workstation/laptop over wg0
     serviceConfig = {
       Type = "oneshot";

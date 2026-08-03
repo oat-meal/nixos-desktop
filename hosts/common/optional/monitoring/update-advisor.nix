@@ -19,8 +19,11 @@ in
 
   systemd.services.update-advisor = {
     description = "Flake-update advisor (preview + LLM risk briefing, read-only)";
+    # Order after the network is up, but do NOT `wants` it: a timer-driven monitor
+    # must never pull network-online.target into the boot transaction (with a
+    # Persistent catch-up run that reorders boot). That anti-pattern wedged the
+    # workstation WCN7850 WiFi — see docs/audit/postmortem-2026-08-wcn7850-wifi.md.
     after = [ "network-online.target" "ollama.service" ];
-    wants = [ "network-online.target" ];
     serviceConfig = {
       Type = "oneshot";
       User = "oat";
