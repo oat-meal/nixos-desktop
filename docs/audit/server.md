@@ -6,8 +6,20 @@
 - **CPU**: AMD Ryzen AI Max+ 395, 128GB unified RAM
 - **GPU**: AMD Radeon 8060S (RDNA 3.5, integrated)
 - **Storage**: ZFS on LUKS2 (rpool: 2x 1TB NVMe mirror), /storage dataset on rpool
-- **Network**: WiFi + Ethernet
-- **Kernel**: `linuxPackages_latest`
+- **Network**: WiFi + Ethernet — NIC chipset/speed **UNVERIFIED**; likely **5GbE Realtek RTL8126**
+  (Framework Desktop mainboard, same NIC as workstation-nixos). ⚠️ VERIFY on wired return:
+  `lspci -k | grep -iA3 ethernet` + `ethtool <iface>` for negotiated speed, then record here.
+- **Kernel**: `config.boot.zfs.package.latestCompatibleLinuxPackages` (ZFS-safe; resolves to
+  6.12 LTS on nixpkgs 2026-06-30 — was `linuxPackages_latest`, which outran ZFS 2.3.7 at 7.1.2).
+  ⚠️ VERIFY gfx1151 amdgpu/ROCm (ollama + ComfyUI) still work on 6.12 after the update deploy;
+  if regressed, switch to `boot.zfs.package = pkgs.zfs_unstable` + a recent kernel.
+
+## Pending validation — on server return (wired, post-update)
+1. Confirm NIC (lspci/ethtool) → fill in the Network line above.
+2. Deploy the pending update (`git pull` → `nixos-rebuild switch`); pre-flight `nix eval` now passes.
+3. Verify GPU stack (ollama-rocm gfx1151 + ComfyUI) on the 6.12 LTS kernel.
+4. Plan: server → CRS310-8G+2S+IN **2.5G copper** port (5GbE NIC negotiates 2.5G; fine for
+   DAS-backed NFS). DAS is direct-attached — no switch port needed (see vault Storage-Migration).
 
 ## Host-Specific Configuration
 
