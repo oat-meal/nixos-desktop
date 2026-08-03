@@ -68,17 +68,14 @@
   ################################
   ## Kernel
   ################################
-  # Pinned to the 7.0 line (was linuxPackages_latest). The WCN785x Wi-Fi 7 card
-  # relies on the bleeding-edge in-tree ath12k_wifi7 driver, so an implicit
-  # kernel bump from a flake update can silently break WiFi.
+  # Pinned to the 7.0 line (was linuxPackages_latest) as a conservative default for
+  # the bleeding-edge WCN785x/ath12k_wifi7 card. Both 7.0.10 and 7.0.14 are KNOWN-GOOD.
   #
-  # KNOWN-GOOD: 7.0.10. CONFIRMED BROKEN: 7.0.14 (2026-08-02) — ath12k_wifi7_pci
-  # fails QMI handle init with -517 (EPROBE_DEFER), no wlp16s0. The qrtr softdep
-  # below did NOT fix it, so it's a real driver/firmware regression, not just
-  # module ordering. flake.lock is therefore held at the 7.0.10 nixpkgs rev.
-  # MONTHLY-REVIEW CHECK: when a kernel > 7.0.14 is available, test a flake update
-  # on a `nixos-rebuild boot` gen + reboot; if wlp16s0 comes up, unpin. See
-  # docs/audit/workstation.md.
+  # NOTE (2026-08-03): the earlier "7.0.14 breaks WiFi (-517)" belief was WRONG — it
+  # was confounded by the stack-smoke-test monitoring's boot-ordering grab race (see
+  # docs/audit/workstation.md). With that monitoring removed, 7.0.14 boots WiFi
+  # cleanly. The pin now just avoids surprise MAJOR kernel jumps; patch bumps within
+  # 7.0.x are fine. Safe to bump this attr deliberately (and reboot-test WiFi) when wanted.
   boot.kernelPackages = pkgs.linuxPackages_7_0;
   boot.consoleLogLevel = 1;
 

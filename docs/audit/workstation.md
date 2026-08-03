@@ -46,14 +46,14 @@
     without `network-online.target`/`Persistent`; the durable fix is `unmanaged` +
     handover **with** an explicit `nmcli device connect wlp16s0` after set-managed.
 
-- **Kernel held at 7.0.10 — 7.0.14 update deferred** (2026-08-02).
-  A flake update moved `linuxPackages_7_0` 7.0.10 → 7.0.14; that boot showed a *driver-level*
-  `ath12k` `failed to init core: -517`. **CAVEAT:** that 7.0.14 boot **also had the
-  monitoring present**, so the failure may have been the same boot-ordering race, not a
-  true kernel regression — it was never tested with monitoring removed. `flake.lock` is
-  held at the 7.0.10 nixpkgs rev (`25f5383`); EliteIntel 0032 + electron insecure-permit kept.
-  **MONTHLY-REVIEW CHECK:** retry the flake update **with monitoring already disabled**,
-  via `nixos-rebuild boot` + reboot; if `wlp16s0` comes up on 7.0.14+, drop the hold.
+- **Kernel 7.0.14 / nixpkgs 2026-06-30 update — DONE, WiFi confirmed working** (2026-08-03).
+  The earlier "7.0.14 breaks WiFi (`-517`)" was a **misdiagnosis** — that boot had the
+  stack-smoke-test monitoring present, so the real cause was the boot-ordering grab race
+  above, not the kernel. Re-tested the full flake update **with monitoring removed**:
+  kernel 7.0.14 boots WiFi cleanly (associates, gets IP, no `-517`/grab errors). The
+  7.0.10 hold is **lifted**; `flake.lock` advanced to nixpkgs `b6018f8` (mango still held —
+  it needs a wlroots newer than stable ships). Lesson: never conclude "kernel regression"
+  while another boot-ordering change is in flight — isolate variables first.
 
 ## Filesystem
 
