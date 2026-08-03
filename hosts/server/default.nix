@@ -55,7 +55,12 @@
   ################################
   ## Kernel
   ################################
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  # ZFS host: track the newest kernel ZFS actually supports, NOT linuxPackages_latest.
+  # ZFS lags kernel releases, so `latest` periodically outruns it and marks
+  # zfs-kernel broken (hit 2026-08-03: nixpkgs 2026-06-30 gave kernel 7.1.2, which
+  # ZFS 2.3.7 didn't support → server config refused to evaluate). This attr always
+  # resolves to a ZFS-compatible kernel, so updates can't break the storage host.
+  boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
 
   # ZFS ARC 32GB
   boot.kernelParams = [
