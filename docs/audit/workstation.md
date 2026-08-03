@@ -23,16 +23,37 @@
 
 ## Known Issues / Deferred Updates (monthly-review checks)
 
-- **Kernel pinned at 7.0.10 — WCN785x WiFi breaks on 7.0.14** (found 2026-08-02).
-  A flake update moved `linuxPackages_7_0` from 7.0.10 → 7.0.14; on 7.0.14 the
-  `ath12k_wifi7_pci` driver fails QMI handle init with `-517` (EPROBE_DEFER) and
-  no `wlp16s0` appears. A `qrtr`/`qrtr_mhi` softdep (kept in `hosts/workstation/default.nix`)
-  did NOT fix it → genuine driver/firmware regression, not module ordering.
-  **Action taken:** `flake.lock` held at the 7.0.10 nixpkgs rev (`25f5383`); the rest
-  of that update (EliteIntel 0032, electron insecure-permit) was kept.
-  **MONTHLY-REVIEW CHECK:** when nixpkgs offers a kernel **> 7.0.14**, test a full
-  flake update via `nixos-rebuild boot` + reboot; if `wlp16s0` comes up, drop the
-  pin/hold. Track upstream: ath12k WCN7850 `-517` QMI regression.
+- **WCN7850 WiFi firmware-init grab race — CONFIRMED ROOT CAUSE** (resolved 2026-08-03).
+  The `ath12k_wifi7_pci` netdev (`wlp16s0`) appears **~13-29 s before** the WCN7850
+  firmware finishes init. If NetworkManager/wpa_supplicant grab the interface during
+  that window, it fails (`wpa_supplicant couldn't grab this interface`, a D-Bus/nl80211
+  error) and the card **wedges** — NM's 10 s retries never recover it. Whether the grab
+  races the firmware is decided purely by **boot ordering**.
+  - **Trigger identified by bisection (gen 50 works / gen 51 fails, byte-identical
+    kernel+initrd+driver+firmware):** the `stack-smoke-test` monitoring unit declared
+    `wants = network-online.target` + `Persistent = true` timer, which pulled
+    `network-online.target` into early boot, brought NetworkManager up immediately, and
+    made it engage `wlp16s0` at T+1 s — losing the race. Without it, NM starts ~13 s
+    later (firmware ready) and connects.
+  - **FIX (this host):** dropped both monitoring imports (`stack-smoke-test.nix`,
+    `post-rebuild-verify.nix`) — they alerted to the offline server's ntfy hub and
+    provided ~no value. WiFi now reliably comes up.
+  - **DEAD ENDS (don't retry):** `qrtr`/`qrtr_mhi` kernelModules + softdep — no effect;
+    `wifi-ath12k-recovery` service — only handles "interface missing", not this
+    "present-but-dead" case; NM `unmanaged` + hand-to-nm handover — prevented the race
+    but NM then wouldn't auto-connect (would need an explicit `nmcli device connect`).
+  - **RE-HARDENING (optional, if ever wanted):** keep monitoring off, OR re-add it
+    without `network-online.target`/`Persistent`; the durable fix is `unmanaged` +
+    handover **with** an explicit `nmcli device connect wlp16s0` after set-managed.
+
+- **Kernel held at 7.0.10 — 7.0.14 update deferred** (2026-08-02).
+  A flake update moved `linuxPackages_7_0` 7.0.10 → 7.0.14; that boot showed a *driver-level*
+  `ath12k` `failed to init core: -517`. **CAVEAT:** that 7.0.14 boot **also had the
+  monitoring present**, so the failure may have been the same boot-ordering race, not a
+  true kernel regression — it was never tested with monitoring removed. `flake.lock` is
+  held at the 7.0.10 nixpkgs rev (`25f5383`); EliteIntel 0032 + electron insecure-permit kept.
+  **MONTHLY-REVIEW CHECK:** retry the flake update **with monitoring already disabled**,
+  via `nixos-rebuild boot` + reboot; if `wlp16s0` comes up on 7.0.14+, drop the hold.
 
 ## Filesystem
 

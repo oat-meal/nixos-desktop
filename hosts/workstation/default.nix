@@ -50,8 +50,13 @@
 
     # Storage
     ../common/optional/storage/zfs-maintenance.nix
-    ../common/optional/monitoring/post-rebuild-verify.nix
-    ../common/optional/monitoring/stack-smoke-test.nix
+
+    # Monitoring — TEMPORARILY DISABLED (2026-08-03) to test the WiFi regression:
+    # these were the ONLY functional additions between working gen 50 and failing
+    # gen 51 (ath12k "wpa_supplicant couldn't grab interface"). Re-enable once the
+    # WiFi cause is confirmed/ruled out. See docs/audit/workstation.md.
+    # ../common/optional/monitoring/post-rebuild-verify.nix
+    # ../common/optional/monitoring/stack-smoke-test.nix
   ];
 
   ################################
@@ -97,28 +102,9 @@
     "split_lock_detect=off"
   ];
 
-  # ath12k QMI init requires the qrtr (Qualcomm IPC Router) modules loaded first.
-  # CONFIG_QRTR=m, and on some kernels (observed: 7.0.14) qrtr is not auto-loaded
-  # before the ath12k_wifi7 probe, so the WCN785x fails QMI handle init with -517
-  # (EPROBE_DEFER) and no wlp16s0 appears. Force-loading qrtr + qrtr_mhi lets the
-  # deferred probe complete — the kernel-version-independent fix for the
-  # "kernel bump breaks WiFi" symptom (vs. freezing the kernel).
   boot.kernelModules = [
     "ath12k_pci"
-    "qrtr"
-    "qrtr_mhi"
   ];
-
-  # ...but kernelModules alone isn't enough: udev autoloads ath12k_wifi7_pci on PCI
-  # match BEFORE systemd-modules-load runs, so ath12k probes before qrtr is up and
-  # fails QMI init with -517. On 7.0.10 ath12k pulled qrtr automatically; 7.0.14
-  # lost that linkage. This softdep restores it — modprobe loads qrtr FIRST whenever
-  # ath12k is loaded, regardless of trigger (udev, kernelModules, manual).
-  boot.extraModprobeConfig = ''
-    softdep ath12k_wifi7_pci pre: qrtr qrtr_mhi
-    softdep ath12k_wifi7 pre: qrtr qrtr_mhi
-    softdep ath12k_pci pre: qrtr qrtr_mhi
-  '';
 
   ################################
   ## Anti-cheat (EAC) override
@@ -209,74 +195,6 @@
         sleep 2
       '';
       TimeoutStopSec = "15s";
-    };
-  };
-
-  ################################
-  ## WiFi warm-reboot auto-recovery (ath12k WCN785x firmware-init failure)
-  ################################
-  # The WCN785x (FastConnect 7800) intermittently fails QMI/firmware init after
-  # a warm reboot: the PCIe function stops responding and the OS reports the
-  # WiFi hardware as "missing" until a cold power cycle. This unit runs at boot
-  # and, ONLY when no wlp16s0 interface came up, escalates recovery:
-  #   1) unbind + rebind the PCI driver (firmware init failed, function on bus)
-  #   2) reload the ath12k module stack
-  #   3) PCI remove + bus rescan (function dropped off the bus)
-  # It no-ops when WiFi is already present, so a healthy boot is left untouched.
-  systemd.services.wifi-ath12k-recovery = {
-    description = "Recover ath12k WiFi if the WCN785x failed to initialize";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "systemd-udev-settle.service" ];
-    wants = [ "systemd-udev-settle.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = pkgs.writeShellScript "wifi-ath12k-recovery" ''
-        set -u
-        IFACE=wlp16s0
-        PCI=0000:10:00.0
-        DRV=/sys/bus/pci/drivers/ath12k_wifi7_pci
-
-        have_iface() { [ -e "/sys/class/net/$IFACE" ]; }
-
-        if have_iface; then
-          echo "ath12k: $IFACE present, no recovery needed"
-          exit 0
-        fi
-
-        echo "ath12k: $IFACE missing — attempting recovery"
-
-        # 1) unbind + rebind the PCI driver (function still on the bus)
-        if [ -e "$DRV/$PCI" ]; then
-          echo "ath12k: unbind/rebind $PCI"
-          echo "$PCI" > "$DRV/unbind" 2>/dev/null || true
-          sleep 1
-          echo "$PCI" > "$DRV/bind" 2>/dev/null || true
-          sleep 3
-          have_iface && { echo "ath12k: recovered via rebind"; exit 0; }
-        fi
-
-        # 2) reload the module stack
-        echo "ath12k: reloading module stack"
-        ${pkgs.kmod}/bin/modprobe -r ath12k_wifi7 2>/dev/null || true
-        ${pkgs.kmod}/bin/modprobe -r ath12k 2>/dev/null || true
-        sleep 1
-        ${pkgs.kmod}/bin/modprobe ath12k_wifi7 2>/dev/null || true
-        sleep 3
-        have_iface && { echo "ath12k: recovered via module reload"; exit 0; }
-
-        # 3) re-enumerate the PCIe function
-        echo "ath12k: PCI remove + rescan"
-        [ -e "/sys/bus/pci/devices/$PCI/remove" ] && \
-          echo 1 > "/sys/bus/pci/devices/$PCI/remove" 2>/dev/null || true
-        sleep 1
-        echo 1 > /sys/bus/pci/rescan 2>/dev/null || true
-        sleep 3
-        have_iface && { echo "ath12k: recovered via PCI rescan"; exit 0; }
-
-        echo "ath12k: recovery failed — a cold power cycle may be required"
-        exit 0
-      '';
     };
   };
 
