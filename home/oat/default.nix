@@ -149,6 +149,15 @@
   ################################
   # thunar-archive-plugin ships no xarchiver backend, so wire up
   # "Extract Here" as a custom action calling xarchiver directly.
+  #
+  # Quoting: Thunar does NOT parse the command into an argv vector. It
+  # substitutes %F (shell-quoting each path) into the command string and
+  # passes the whole string to `sh -c` (thunar-uca-model.c, parse_argv).
+  # So %F must land where a shell word is expected, never inside quotes of
+  # our own -- `sh -c 'for f in %F; ...'` puts the quoted paths inside the
+  # single-quoted script, terminating it, and every archive whose name has
+  # a space or shell metacharacter fails with a syntax error. Passing %F as
+  # trailing positional arguments and reading them via "$@" is safe.
   xdg.configFile."Thunar/uca.xml".text = ''
     <?xml version="1.0" encoding="UTF-8"?>
     <actions>
@@ -169,7 +178,7 @@
     	<name>Extract Here</name>
     	<submenu></submenu>
     	<unique-id>1780432366441562-2</unique-id>
-    	<command>sh -c 'for f in %F; do xarchiver --extract-to="$(dirname "$f")" "$f"; done'</command>
+    	<command>sh -c 'for f in "$@"; do xarchiver --extract-to="$(dirname "$f")" "$f"; done' _ %F</command>
     	<description>Extract the archive into the current folder</description>
     	<range></range>
     	<patterns>*.zip;*.7z;*.rar;*.tar;*.tar.gz;*.tgz;*.tar.bz2;*.tbz2;*.tar.xz;*.txz;*.tar.zst;*.gz;*.bz2;*.xz;*.zst;*.cbz;*.cbr;*.cb7</patterns>
