@@ -77,14 +77,15 @@ firmware/NetworkManager otherwise (`nix store diff-closures` + recursive `/etc` 
   regression" note was corrected once 7.0.14 booted cleanly with monitoring removed).
 
 ## Action items
-| # | Action | Priority |
-|---|--------|----------|
-| 1 | USB ethernet/WiFi fallback for the workstation (out-of-band recovery) | High |
-| 2 | Audit all sentinels/timers for boot-path coupling (no `Wants=*.target`, reconsider `Persistent`, gate after boot) | High |
-| 3 | Monitors fail-open + self-check alert delivery; don't target/alert-to hosts that may be down | Medium |
-| 4 | Standard risky-change ritual: closure-diff pre-flight → `boot` not `switch` → known-good default → boot-once | Medium |
-| 5 | New modules land single-host first, then fleet-wide | Medium |
-| 6 | Re-add monitoring only decoupled from boot, once #2 done | Low |
+| # | Action | Priority | Status |
+|---|--------|----------|--------|
+| 1 | Out-of-band recovery for the workstation (was: USB dongle) | High | **Planned** — switch + ethernet being purchased; server returns to wired then |
+| 2 | Audit all sentinels/timers for boot-path coupling (no `Wants=*.target`, reconsider `Persistent`, gate after boot) | High | **Done** — `fleet-sentinel` + `update-advisor` decoupled (`769f86b`); `stack-smoke-test` removed |
+| 3 | Monitors fail-open + self-check alert delivery; don't target/alert-to hosts that may be down | Medium | Open |
+| 4 | Standard risky-change ritual: closure-diff pre-flight → `boot` not `switch` → known-good default → boot-once | Medium | Open (practiced this incident) |
+| 5 | New modules land single-host first, then fleet-wide | Medium | Open |
+| 6 | Re-add monitoring only decoupled from boot, once #2 done | Low | Open |
+| 7 | **Server GPU-vs-ZFS kernel decision** — the ZFS-compatible pin (`latestCompatibleLinuxPackages`, commit `a9fd5cb`) drops the server to **6.12 LTS**; the gfx1151/Strix Halo APU may need a newer kernel for full amdgpu/ROCm. **When the server returns to wired: deploy, then verify ollama-rocm + ComfyUI on 6.12.** If the GPU stack regresses, switch to Option B — keep a recent kernel + `boot.zfs.package = pkgs.zfs_unstable`. | High | **Blocked on server return** |
 
 ## Resolution
 - Dropped `stack-smoke-test` + `post-rebuild-verify` from the workstation (commit `183f279`).
