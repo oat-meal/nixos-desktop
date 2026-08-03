@@ -21,6 +21,20 @@
 4. Plan: server → CRS310-8G+2S+IN **2.5G copper** port (5GbE NIC negotiates 2.5G; fine for
    DAS-backed NFS). DAS is direct-attached — no switch port needed (see vault Storage-Migration).
 
+## Networking / switch plan
+- **Switch (ordered):** MikroTik **CRS310-8G+2S+IN** — 8× 2.5G RJ45 + 2× SFP+ (10G), fanless,
+  RouterOS (export config → git). Office switch, uplinked to the router via a 200ft Cat6A run
+  through the crawlspace (in conduit, off the ground). All hosts on plain 2.5G copper ports.
+- **5GbE note:** both server and workstation are (likely) 5GbE RTL8126; on 2.5G copper they
+  negotiate 2.5G — plenty for these workloads (models load once + stay GPU-resident; DAS-NFS
+  rarely saturates 2.5G). 5GBASE-T isn't a switch tier — full 5G needs a 10GBASE-T port.
+- **UPGRADE PATH (only if 2.5G becomes limiting):** add a MikroTik **CRS304-4XG-IN** (~$199,
+  4× 10GBASE-T, fanless, does 1/2.5/5/10G) as a 10G "fast lane." Put workstation + server
+  (+ DAS host) on its 10G-copper ports → full 5G between them; uplink the CRS304 to the CRS310
+  via **SFP+ DAC cable** (10G). Keeps everything MikroTik + fanless; spend the extra only when
+  a concrete WS↔server transfer need appears. (Single-box 8-port fanless 5G copper doesn't exist
+  in MikroTik's line — CRS312 is 8×10G-RJ45 but rackmount + active fan.)
+
 ## Host-Specific Configuration
 
 - **Role**: Headless home server
