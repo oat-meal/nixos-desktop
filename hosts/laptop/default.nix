@@ -88,7 +88,10 @@
 
   # 2. Guarantee the ESP's filesystem modules are present regardless of the
   #    autoload path, so /boot always mounts (vfat pulls fat as a dependency).
-  boot.kernelModules = [ "vfat" "nls_cp437" "nls_iso8859_1" ];
+  #    af_packet (CONFIG_PACKET=m) is likewise forced: without it socket(AF_PACKET)
+  #    returns EAFNOSUPPORT, breaking NM's DHCP client and wpa_supplicant (WiFi) —
+  #    systemd-modules-load loads it via libkmod, independent of the modprobe path.
+  boot.kernelModules = [ "vfat" "nls_cp437" "nls_iso8859_1" "af_packet" ];
 
   ################################
   ## GameMode override (laptop)
