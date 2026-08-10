@@ -78,6 +78,11 @@ in
       # Anchored to ^eDP-1$ so it's a no-op on hosts without that output.
       monitorrule=name:^eDP-1$,scale:1.5
 
+      # Workstation LG UltraGear is 3840x2160; scale 2.0 → logical 1920x1080,
+      # matching the laptop's logical width (readable UI) and making the
+      # Sunshine 1080p stream a crisp 1:1 capture. Anchored to ^DP-1$.
+      monitorrule=name:^DP-1$,scale:2.0
+
       # ---------------- Appearance ----------------
       gappih=8
       gappiv=8
