@@ -1,4 +1,4 @@
-{ config, pkgs, inputs, ... }:
+{ config, pkgs, lib, inputs, hostname, ... }:
 
 {
   ################################
@@ -255,7 +255,7 @@
       get_power_state() {
           for ac in /sys/class/power_supply/AC* /sys/class/power_supply/ACAD; do
               if [ -f "$ac/online" ]; then
-                  cat "$ac/online" 2>/dev/null
+                  ${pkgs.coreutils}/bin/cat "$ac/online" 2>/dev/null
                   return
               fi
           done
@@ -283,8 +283,16 @@
     };
   };
 
-  # Poll for AC power changes (every 3 seconds)
-  systemd.user.services.wallpaper-power-watch = {
+  # Poll for AC power changes (every 3 seconds).
+  #
+  # Laptop only: desktops have no /sys/class/power_supply/AC*, so this loop can
+  # never observe a transition and is pure overhead on workstation-nixos.
+  #
+  # All binaries are referenced by absolute store path. systemd user units get a
+  # minimal PATH (systemd's own bin dir only), so a bare `sleep` is NOT resolvable
+  # here — and a failing `sleep` turns the `while true` into a busy loop that
+  # spins a core and floods the journal.
+  systemd.user.services.wallpaper-power-watch = lib.mkIf (hostname == "laptop-nixos") {
     Unit = {
       Description = "Watch for power state changes";
       After = [ "graphical-session.target" ];
@@ -297,16 +305,16 @@
           CURRENT=""
           for ac in /sys/class/power_supply/AC* /sys/class/power_supply/ACAD; do
             if [ -f "$ac/online" ]; then
-              CURRENT=$(cat "$ac/online" 2>/dev/null)
+              CURRENT=$(${pkgs.coreutils}/bin/cat "$ac/online" 2>/dev/null)
               break
             fi
           done
           if [ "$CURRENT" != "$LAST_STATE" ] && [ -n "$LAST_STATE" ]; then
-            sleep 1
+            ${pkgs.coreutils}/bin/sleep 1
             $HOME/.local/bin/wallpaper-power-switch
           fi
           LAST_STATE="$CURRENT"
-          sleep 3
+          ${pkgs.coreutils}/bin/sleep 3
         done
       ''}";
       Restart = "always";
