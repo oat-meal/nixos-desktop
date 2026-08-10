@@ -69,6 +69,28 @@
   ];
 
   ################################
+  ## Kernel module autoload fix (2026-08-10)
+  ################################
+  # On this host (linux_6_12 + systemd-initrd) the NixOS activation step that
+  # points /proc/sys/kernel/modprobe at the real kmod modprobe does not take
+  # effect at boot, leaving it at the compiled-in default "/sbin/modprobe"
+  # (which does not exist on NixOS). That silently breaks on-demand kernel
+  # module autoloading, cascading into: /boot (vfat) failing to mount, the
+  # firewall failing ("nft: Protocol not supported"), and a crippled network
+  # stack. `nixos-rebuild switch` runs activation as full root and fixes it for
+  # the running session, but it recurs on every reboot. Two independent, boot-
+  # ordered safeguards (systemd-sysctl and systemd-modules-load both hold
+  # CAP_SYS_MODULE and run before firewall.service / boot.mount):
+
+  # 1. Set the autoload helper path via systemd-sysctl (covers ALL on-demand
+  #    module autoloading — firewall nftables modules, hotplugged hardware, …).
+  boot.kernel.sysctl."kernel.modprobe" = "${pkgs.kmod}/bin/modprobe";
+
+  # 2. Guarantee the ESP's filesystem modules are present regardless of the
+  #    autoload path, so /boot always mounts (vfat pulls fat as a dependency).
+  boot.kernelModules = [ "vfat" "nls_cp437" "nls_iso8859_1" ];
+
+  ################################
   ## GameMode override (laptop)
   ################################
   # 8-core laptop CPU: reserve 4 cores for system, pin games to 4
