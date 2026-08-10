@@ -226,7 +226,16 @@ in
       bindl=none,XF86MonBrightnessDown,spawn,${nc} msg brightness-down
 
       # ---------------- Window rules (float dialogs / launchers / PiP) ----------------
-      windowrule=isfloating:1,appid:steam
+      # Steam: the main window tiles like any other client. Only its transient
+      # popups float — a blanket appid:steam float also caught the main window,
+      # which then sat on top of the layout instead of joining it.
+      # Startup window (shows sign-in / update progress before the main window
+      # exists, ~4.8s-6.5s in). Distinct title from the main window's "Steam",
+      # so floating it does not disturb the tiled layout on launch.
+      windowrule=isfloating:1,appid:steam,title:Sign in to Steam
+      windowrule=isfloating:1,appid:steam,title:Friends List
+      windowrule=isfloating:1,appid:steam,title:Steam Settings
+      windowrule=isfloating:1,appid:steam,title:Special Offers
       windowrule=isfloating:1,appid:lutris
       windowrule=isfloating:1,appid:heroic
       windowrule=isfloating:1,appid:pavucontrol
