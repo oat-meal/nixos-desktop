@@ -93,6 +93,43 @@
   #    systemd-modules-load loads it via libkmod, independent of the modprobe path.
   boot.kernelModules = [ "vfat" "nls_cp437" "nls_iso8859_1" "af_packet" ];
 
+  # 3. Actually run (1) and (2) against the real root.
+  #    Root cause (diagnosed 2026-08-10, boot c99796eb): with systemd-initrd,
+  #    systemd-sysctl.service and systemd-modules-load.service run *inside the
+  #    initrd*, are restarted there by the daemon-reload that initrd-parse-etc
+  #    triggers, and — being Type=oneshot + RemainAfterExit=yes — their
+  #    "active (exited)" state is serialized across switch_root. systemd
+  #    therefore never re-runs them against the real /etc, so /etc/sysctl.d and
+  #    /etc/modules-load.d are silently never applied: every value in
+  #    60-nixos.conf stayed at its kernel default (verified: vm.swappiness 60
+  #    not 1, kernel.pid_max 32768 not 4194304, rp_filter 0 not 2, and
+  #    kernel.modprobe still /sbin/modprobe), and af_packet/vfat were never
+  #    inserted. `nixos-rebuild switch` masks it by restarting both units as
+  #    full root, which is why it only ever recurred on reboot.
+  #    Re-invoking the two generators after switch_root applies both, and does
+  #    so before the consumers that were failing (boot.mount, firewall.service,
+  #    NetworkManager/wpa_supplicant).
+  systemd.services.reapply-kernel-config = {
+    description = "Re-apply /etc/sysctl.d and /etc/modules-load.d after switch-root";
+    wantedBy = [ "sysinit.target" ];
+    before = [
+      "boot.mount"
+      "firewall.service"
+      "network-pre.target"
+      "NetworkManager.service"
+      "wpa_supplicant.service"
+    ];
+    unitConfig.DefaultDependencies = false;
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = [
+        "${config.systemd.package}/lib/systemd/systemd-modules-load"
+        "${config.systemd.package}/lib/systemd/systemd-sysctl"
+      ];
+    };
+  };
+
   ################################
   ## GameMode override (laptop)
   ################################
