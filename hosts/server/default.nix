@@ -109,6 +109,29 @@ in
   #
   # NOTE: .50 must sit outside the router's DHCP pool, or be reserved for
   # 9c:bf:0d:01:03:73, otherwise the lease can be handed to another device.
+  # Required for podman PUBLISHED ports to be reachable from other hosts.
+  #
+  # Diagnosed 2026-08-16. Symptom: every NATIVE service answered over wg0 (ollama
+  # 11434, adguard 3000, ntfy 2586, lab-api 8091) while BOTH container ports were
+  # silently blocked (comfyui 8188, kokoro 8880) — no refusal, just a timeout.
+  # Everything that looked like the cause was in fact correct: 8188 IS in
+  # wg0.allowedTCPPorts, netavark's DNAT rules WERE present
+  # (--dport 8188 -j DNAT --to-destination 10.88.0.5:8188), FORWARD policy WAS
+  # ACCEPT, and the host itself could reach 10.88.0.5:8188 directly.
+  #
+  # Cause: DNAT rewrites the destination to a container address, so the packet is
+  # no longer addressed to this host — it must be FORWARDED to the podman bridge,
+  # and never reaches the INPUT chain the nixos-fw ACCEPT rule lives in. With
+  # ip_forward=0 the kernel drops it silently. netavark sets this itself when it
+  # creates a network, but that is a side effect which does not survive a reboot;
+  # declaring it makes container reachability deterministic.
+  #
+  # NOTE: this does make the host capable of routing between its interfaces, and
+  # FORWARD policy here is ACCEPT. That is the normal posture for a container host
+  # and is unchanged from when podman set the flag itself, but if this box ever
+  # sits between untrusted networks, tighten FORWARD rather than reverting this.
+  boot.kernel.sysctl."net.ipv4.ip_forward" = true;
+
   networking.networkmanager.ensureProfiles.profiles.wired-static = {
     connection = {
       id = "wired-static";
