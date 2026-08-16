@@ -1,11 +1,24 @@
 # NordVPN Setup Guide (wgnord)
 
-## Configuration Status
-- ✅ wgnord installed
-- ✅ WireGuard tools installed
-- ✅ Firewall enabled with VPN support
-- ✅ Helper scripts configured
-- ⏳ **Next: Get your NordVPN access token and connect**
+> **STATUS: SETUP NEVER COMPLETED — this is a guide, not a description of a working system.**
+> Last verified 2026-07-08. The Nix side is deployed (`nordvpn.nix` is imported by
+> **workstation-nixos and laptop-nixos**), but no access token was ever configured, so nothing
+> has actually connected. Treat the steps below as untested against the current deployment.
+>
+> **Unfinished work is parked, not lost.** A larger rewrite — a `wgnord` config template plus a
+> `nordvpn` `writeShellApplication` with profile management — was in progress on the laptop
+> (2026-08-11) and is **stashed** there as `stash@{0}` ("nordvpn WIP 2026-08-11 — unfinished,
+> non-working"). It was parked 2026-08-16 to keep builds clean and consistent. Recover with
+> `git stash pop` on laptop-nixos before starting fresh, or `git stash drop` to discard.
+>
+> Note `nordvpn.nix` is a **shared** module: changes land on two hosts. Test on one first
+> (postmortem action item #5).
+
+## What is actually deployed
+- ✅ `wgnord` + WireGuard tools installed
+- ✅ Firewall configured (`wgnord` trusted, NM leaves the interface unmanaged)
+- ✅ A basic `nordvpn` helper script (connect / disconnect / status wrapper around `wgnord`)
+- ❌ **No access token configured — never connected**
 
 ## Step 1: Get Your NordVPN Access Token
 

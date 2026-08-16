@@ -153,10 +153,22 @@ local LLM only triages/summarizes; severities are assigned deterministically in 
   errors filtered against `docs/audit/known-states.md`) **plus backup integrity** (each
   auto-snapshot dataset must have recent snapshots). `qwen3` annotates each finding and
   writes the summary. → `/var/lib/fleet-sentinel/latest.md` + ntfy.
-- **post-rebuild verifier** (all hosts) — an activation hook checks for failed units
-  ~90 s after any rebuild → ntfy. Catches silent post-rebuild regressions.
-- **AMD-stack smoke test** (workstation, daily) — a 1-token Ollama gen (`gfx1151`) + a
-  tiny ComfyUI gen (`gfx1201`); alerts if either ROCm path breaks after an update.
+- **post-rebuild verifier** (**server only** — see note) — an activation hook checks for
+  failed units ~90 s after any rebuild → ntfy. Catches silent post-rebuild regressions.
+- **AMD-stack smoke test** (**not running** — see note) — a 1-token Ollama gen (`gfx1151`)
+  + a tiny ComfyUI gen (`gfx1201`); would alert if either ROCm path broke after an update.
+
+> ⚠️ **Coverage gap — the workstation is currently unmonitored.** Both of the above are
+> commented out of `hosts/workstation/default.nix`. They were disabled 2026-08-03 while
+> bisecting the WCN7850 WiFi outage (the smoke test's `Persistent` timer plus
+> `wants=network-online.target` was the cause), and are now **parked** pending a review of
+> the lab's observability strategy — see postmortem action items #6 and #8. The technical
+> blocker is gone: the anti-pattern was removed from `stack-smoke-test.nix` on 2026-08-16.
+>
+> Net effect today: **no automated check that the `gfx1201` ComfyUI path still works after
+> an update**, and no post-rebuild failed-unit alert on the workstation or laptop. Also note
+> both units alert *to the ntfy hub on the server*, so neither can report a server that is
+> itself down (action item #3, open).
 - **update advisor** (server, weekly) — previews `nix flake update` on a throwaway copy
   of the flake (never switches), then `qwen3` gives a per-input risk briefing.
 

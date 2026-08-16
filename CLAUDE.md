@@ -46,7 +46,8 @@ NOT auto-active per clone — enable it once after cloning: `git config core.hoo
 hosts/
 ├── common/
 │   ├── core/          # Required on ALL hosts (boot, locale, networking, nix, packages, shell, users)
-│   └── optional/      # Mix-in modules (desktop/, gaming/, hardware/, networking/, power/, security/, storage/)
+│   └── optional/      # Mix-in modules: ai/, desktop/, gaming/, hardware/, monitoring/,
+│                      #   networking/, power/, security/, storage/
 ├── workstation/       # Gaming workstation config
 ├── laptop/            # Framework 13 config
 ├── server/            # Home server
@@ -62,7 +63,20 @@ secrets/
 └── init-sops.sh       # Helper to collect and encrypt WireGuard keys
 
 installer/             # Custom installer ISO
-docs/audit/            # Per-host audit docs
+
+docs/
+├── deployment.md            # Canonical change→deploy cycle (deploy.sh, monthly flake update)
+├── deployment-issues.md     # Past failures + fixes (incl. root-run git corruption)
+├── kernel-module-autoload.md # systemd-initrd switch_root bug (hit laptop + server)
+├── portal-filechooser.md    # xdg-desktop-portal: FileChooser + AppChooser/PATH failures
+├── ai-lab.md                # Models, benchmarks, serving stack, observability
+├── nixos-primer.md          # Nix language / NixOS concepts
+├── NORDVPN-SETUP.md         # wgnord setup guide (setup incomplete — see the doc)
+└── audit/
+    ├── README.md            # Audit procedure
+    ├── known-states.md      # Expected anomalies — CHECK BEFORE FILING A FINDING
+    ├── workstation.md / laptop.md / server.md   # Per-host audit docs
+    └── postmortem-2026-08-wcn7850-wifi.md       # WiFi outage postmortem + action items
 ```
 
 ## Deployment

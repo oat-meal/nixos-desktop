@@ -13,12 +13,25 @@ Repeatable audit procedure for all NixOS lab hosts.
 
 Update monthly to stay current with security patches:
 
+**Never run git or `nix flake update` under `sudo`.** Both write into `/etc/nixos`, which is
+owned by the user; running them as root leaves root-owned files that break every later
+user-run git command. See [../deployment-issues.md](../deployment-issues.md) §"Git ownership
+corruption from root-run pulls". Only `nixos-rebuild` needs sudo.
+
+The canonical procedure lives in [../deployment.md](../deployment.md) §"Monthly flake update" —
+kept there so there is one copy to keep correct:
+
 ```bash
-sudo nix flake update /etc/nixos
-sudo nixos-rebuild switch --flake /etc/nixos#$(hostname)
-# Test, then deploy to other hosts
-bash /etc/nixos/deploy.sh all
+cd /etc/nixos && nix flake update && nix-shell -p git-crypt --run 'git add flake.lock && git commit -m "flake: update inputs"' && bash /etc/nixos/deploy.sh all
 ```
+
+`flake.lock` must be **committed**, not just updated: flakes only see tracked files, so an
+uncommitted lock builds locally and never reaches the other hosts. `deploy.sh all` runs a
+pre-flight `nix eval` of every target before changing anything.
+
+(Modern Nix reads positional arguments to `nix flake update` as *input names*, so the older
+`nix flake update /etc/nixos` form tries to update an input called "/etc/nixos". Use `cd` or
+`--flake`.)
 
 Check input ages during audits:
 ```bash

@@ -7,7 +7,10 @@
 - **RAM**: 64GB DDR5
 - **Storage**: ZFS on LUKS2 (rpool: ROOT/nixos, home, nix, log, swap zvol) + storage pool (2x NVMe LUKS2)
 - **Network**: WiFi 7 (Qualcomm WCN785x, ath12k) + 5GbE Ethernet (RTL8126)
-- **Kernel**: `linuxPackages_7_0` — pinned at 7.0.10 (WCN785x WiFi; see Known Issues)
+- **Kernel**: `linuxPackages_7_0` — currently **7.0.14**. The 7.0.10 hold was lifted
+  2026-08-03 (`0bc7e1b`) once the WiFi failure was traced to boot ordering rather than the
+  kernel; the pin now exists only to avoid surprise MAJOR jumps, and 7.0.x patch bumps are
+  fine. See Known Issues.
 
 ## Host-Specific Configuration
 
