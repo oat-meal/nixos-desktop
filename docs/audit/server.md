@@ -55,9 +55,8 @@ incompatible with unattended boot.
 
 ## Pending validation
 1. ~~Negotiated link speed~~ — **DONE 2026-08-16**: 2500 Mb/s full duplex.
-2. **Reserve `.50` at the router**, or move it outside the DHCP pool. The address is a static
-   now, so a competing lease means an address conflict. Router-side; the only item here that
-   cannot be done from the hosts.
+2. ~~Reserve `.50` at the router~~ — **DONE 2026-08-16** (oat). The wired static is now protected
+   against a competing DHCP lease.
 3. Plan: server → CRS310-8G+2S+IN **2.5G copper** port. Already negotiating 2.5G today, so the
    switch migration should be a no-change for throughput. DAS is direct-attached — no switch
    port needed (see vault Storage-Migration).
