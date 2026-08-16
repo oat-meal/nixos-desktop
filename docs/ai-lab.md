@@ -137,8 +137,13 @@ All wg0-only:
 
 - **Ollama** — LLM + embedding server (`gfx1151`).
 - **Open WebUI** — chat front-end + inline image gen.
-- **ComfyUI** — image generation (a `gfx1151` instance on the server, a `gfx1201`
-  render node on the workstation).
+- **ComfyUI** — image generation. Two instances: the `gfx1201` render node on the
+  workstation (`10.100.0.1:8188`) is the primary — it is the faster GPU and keeps image
+  gen off the GPU Ollama shares — and the `gfx1151` instance on the server
+  (`10.100.0.2:8188`) is kept as a fallback. The workstation node publishes on both wg0
+  and loopback; on-box consumers (`ai-lab/bench/`, `ai-lab/smoke-test/`) use `127.0.0.1`.
+  The Open WebUI image-gen tool points at the workstation node — its live URL is a valve
+  in the Open WebUI DB, not in nix; see `ai-lab/openwebui/comfyui_image_tool.py`.
 - **SearXNG** — private metasearch for the research tools.
 - **ChromaDB** — vector store for RAG.
 - **ntfy** — self-hosted push-notification hub (`:2586`), the lab's private alert channel.

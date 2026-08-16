@@ -10,9 +10,19 @@ requirements:
 # chat model and use a tool-calling model (qwen2.5). Asking for an image will make
 # the model call generate_image(), which renders the result inline.
 #
-# Uses the same 7-node SDXL text2img graph already verified on the server. The image
-# is returned as a URL to ComfyUI's /view endpoint (10.100.0.2:8188, wg0) — your
-# browser fetches it directly, so nothing large is embedded in the chat.
+# Renders on the WORKSTATION node (10.100.0.1:8188, RX 9070 XT / gfx1201) — faster than
+# the server's gfx1151 instance, and it keeps image gen off the GPU Ollama is using.
+# The server instance (10.100.0.2:8188) stays up as a fallback: point the comfyui_url
+# valve at it if the workstation is down or mid-rebuild.
+#
+# Uses the same 7-node SDXL text2img graph already verified on the server. The image is
+# returned as a URL to ComfyUI's /view endpoint — your browser runs on the workstation
+# and fetches it directly, so nothing large is embedded in the chat.
+#
+# NOTE: this file is the SOURCE you paste into Open WebUI. The live value lives in the
+# Open WebUI DB (/var/lib/open-webui/webui.db), NOT in nix — editing this default does
+# not change a tool that is already installed. Update the valve in the UI as well:
+# Workspace -> Tools -> ComfyUI Image Generation -> comfyui_url.
 
 import asyncio
 import json
@@ -26,7 +36,9 @@ from pydantic import BaseModel, Field
 class Tools:
     class Valves(BaseModel):
         comfyui_url: str = Field(
-            default="http://10.100.0.2:8188", description="ComfyUI base URL (wg0)"
+            default="http://10.100.0.1:8188",
+            description="ComfyUI base URL (wg0). Workstation gfx1201 render node; "
+            "fallback is the server instance at http://10.100.0.2:8188",
         )
         checkpoint: str = Field(
             default="Illustrious-XL-v1.0.safetensors",

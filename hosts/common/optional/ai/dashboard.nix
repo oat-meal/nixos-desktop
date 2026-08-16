@@ -7,8 +7,10 @@
 
 let
   host = "10.100.0.2"; # server mesh IP (wg0)
+  wsHost = "10.100.0.1"; # workstation mesh IP (wg0) — the gfx1201 ComfyUI render node
   port = 8085; # 8085 free; in use: 8080 OWUI, 8091 lab-api, 8188 ComfyUI, 8888 SearXNG
   url = p: "http://${host}:${toString p}";
+  wsUrl = p: "http://${wsHost}:${toString p}";
 in
 {
   services.homepage-dashboard = {
@@ -36,7 +38,12 @@ in
       {
         "AI Tools" = [
           { "Open WebUI" = { href = url 8080; siteMonitor = url 8080; description = "Chat · RAG · image gen"; icon = "open-webui.png"; }; }
-          { "ComfyUI" = { href = url 8188; siteMonitor = url 8188; description = "Image generation"; icon = "comfyui.png"; }; }
+          # Primary image-gen node: the workstation's RX 9070 XT (gfx1201). siteMonitor
+          # pings it over wg0, so this tile doubles as a live check of the published
+          # container port + forwarding path (see ai/comfyui-render.nix).
+          { "ComfyUI (workstation)" = { href = wsUrl 8188; siteMonitor = wsUrl 8188; description = "Image generation · gfx1201"; icon = "comfyui.png"; }; }
+          # Fallback instance on the server's gfx1151, shared with Ollama.
+          { "ComfyUI (server)" = { href = url 8188; siteMonitor = url 8188; description = "Image generation · gfx1151 fallback"; icon = "comfyui.png"; }; }
           { "SearXNG" = { href = url 8888; siteMonitor = url 8888; description = "Meta search"; icon = "searxng.png"; }; }
         ];
       }

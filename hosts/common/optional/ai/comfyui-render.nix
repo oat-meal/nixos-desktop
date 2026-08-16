@@ -6,8 +6,10 @@
 # contending). Imported by hosts/workstation only. See docs/ai-lab.md for the wider
 # image-generation capability and its consumers.
 #
-# Bound to LOOPBACK: image-gen consumers run on this same host, so ComfyUI never needs
-# to be reachable off-box. (The server instance is wg0-bound; this one is 127.0.0.1.)
+# Bound to LOOPBACK **and** wg0. On-box consumers (bench scripts, smoke test) address
+# 127.0.0.1; the Open WebUI image-gen tool runs on the server and reaches this node at
+# 10.100.0.1:8188 over the mesh. Both publish rules are needed — dropping the loopback
+# one would break ai-lab/bench/*.sh and ai-lab/smoke-test, which hardcode 127.0.0.1.
 #
 # Data: the full ComfyUI tree (core + custom_nodes code + models) lives on the
 # storage/comfyui dataset, rsynced from the server — see the deploy notes below.
@@ -25,7 +27,10 @@
     # Locally-derived gfx1201 image — see ai-lab/comfyui/Containerfile.gfx1201 for the
     # build command. localhost/ prefix = no registry pull.
     image = "localhost/comfyui-gfx1201-render:v2";
-    ports = [ "127.0.0.1:8188:8188" ];          # loopback only — consumers are local
+    ports = [
+      "127.0.0.1:8188:8188"  # on-box consumers (bench, smoke test)
+      "10.100.0.1:8188:8188" # wg0 — the Open WebUI image-gen tool on the server
+    ];
     volumes = [ "/storage/comfyui:/opt/ComfyUI" ]; # full ComfyUI tree (rsynced from server)
 
     # RDNA4 stability: ComfyUI sees the HIP/ROCm card as "cuda:0" (HIP impersonates
@@ -57,6 +62,31 @@
       "--shm-size=8g"
     ];
   };
+
+  networking.firewall.interfaces."wg0".allowedTCPPorts = [ 8188 ];
+
+  # Required for the PUBLISHED container port above to be reachable from other mesh
+  # hosts. Opening 8188 on wg0 is necessary but NOT sufficient: podman/netavark DNATs
+  # the packet to the container's bridge address, so it is no longer addressed to this
+  # host and must be FORWARDED — it never reaches the INPUT chain where the nixos-fw
+  # ACCEPT rule lives. With ip_forward=0 the kernel drops it silently: no refusal, just
+  # a timeout. netavark sets the flag itself when it creates a network, but that is a
+  # side effect which does not survive a reboot.
+  #
+  # Same failure diagnosed on the server 2026-08-16 — see the long-form postmortem in
+  # hosts/server/default.nix ("Diagnosed 2026-08-16"). That fix was declared host-locally
+  # rather than in a shared module, so it did not cover this host.
+  #
+  # Set BOTH keys — they are aliases for the same kernel behaviour, and the generated
+  # 60-nixos.conf otherwise emits them in conflict (the NixOS networking default writes
+  # net.ipv4.conf.all.forwarding=0). mkForce overrides that default.
+  #
+  # This makes the host capable of routing between its interfaces, and the FORWARD
+  # policy is ACCEPT. Normal posture for a container host, but this box also runs
+  # NordVPN and Tailscale — if it ever sits between untrusted networks, tighten FORWARD
+  # rather than reverting this.
+  boot.kernel.sysctl."net.ipv4.ip_forward" = lib.mkForce true;
+  boot.kernel.sysctl."net.ipv4.conf.all.forwarding" = lib.mkForce true;
 
   # Diagnostics for the discrete GPU (rocminfo/rocm-smi were absent on this host).
   environment.systemPackages = with pkgs; [ rocmPackages.rocminfo rocmPackages.rocm-smi ];
