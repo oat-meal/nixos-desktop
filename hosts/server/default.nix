@@ -16,6 +16,7 @@ in
 
     # Hardware
     ../common/optional/hardware/amd.nix
+    ../common/optional/hardware/kernel-module-autoload.nix
 
     # Networking
     ../common/optional/networking/sops.nix
