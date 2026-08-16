@@ -130,7 +130,14 @@ in
   # FORWARD policy here is ACCEPT. That is the normal posture for a container host
   # and is unchanged from when podman set the flag itself, but if this box ever
   # sits between untrusted networks, tighten FORWARD rather than reverting this.
-  boot.kernel.sysctl."net.ipv4.ip_forward" = true;
+  # Set BOTH keys. They are aliases for the same kernel behaviour, and the generated
+  # 60-nixos.conf was emitting them in conflict — `net.ipv4.conf.all.forwarding=0`
+  # (line 12, from the NixOS networking default) against `net.ipv4.ip_forward=1`
+  # (line 21). The runtime value came out 0. Rather than depend on which line
+  # systemd-sysctl applies last, make them agree. mkForce is required because the
+  # default is not an mkDefault.
+  boot.kernel.sysctl."net.ipv4.ip_forward" = lib.mkForce true;
+  boot.kernel.sysctl."net.ipv4.conf.all.forwarding" = lib.mkForce true;
 
   networking.networkmanager.ensureProfiles.profiles.wired-static = {
     connection = {
