@@ -149,7 +149,23 @@ find ~ -name "*.hm_bak" -maxdepth 3 2>/dev/null
 
 # Coredumps
 coredumpctl list --no-pager 2>/dev/null | tail -10
+
+# Stray `result` symlinks — these are GC ROOTS, so each one pins a whole system
+# closure against nix.gc indefinitely. `nixos-rebuild build` leaves one behind by
+# default. Expect none; delete any you find (they are regenerable).
+ls -ld /etc/nixos/result ~/result 2>/dev/null
 ```
+
+**Do not rely on the ownership check to catch these.** A `result` left by a *root-run*
+build shows up as a non-`oat` file, but one left by a normal user build does not — the
+tree still reads clean because `result` is gitignored. Both were found on 2026-08-16:
+root-owned on laptop-nixos (from a root-run build during the module-autoload debugging)
+and oat-owned on workstation-nixos, each pinning a stale closure. Check for the file
+itself, not for who owns it.
+
+Delete with `rm -f /etc/nixos/result` — this works even when the symlink is root-owned,
+because removing it needs write permission on `/etc/nixos` (owned by the user), not on
+the link.
 
 ### 11. Configuration
 
@@ -208,6 +224,18 @@ curl -s http://localhost:8384/rest/system/connections 2>/dev/null | grep -c '"co
 
 # NFS over WireGuard (from workstation)
 ls /mnt/server/ && echo "NFS OK" || echo "NFS FAIL"
+
+# Repo hygiene, fleet-wide — expect owner=0 dirty=0 result=none on every host.
+#   owner  — catches root-run git/nix (see ../deployment-issues.md)
+#   dirty  — uncommitted edits that build locally but never reach the other hosts
+#   result — GC roots pinning stale closures (see §10)
+# Note the local-host branch: a host cannot ssh to itself (host key verification
+# fails), so run the check directly there.
+CHECK='printf "owner=%s dirty=%s result=%s\n" "$(find /etc/nixos -not -user "$(stat -c %U /etc/nixos)" | wc -l)" "$(git -C /etc/nixos status --porcelain | wc -l)" "$(ls /etc/nixos/result >/dev/null 2>&1 && echo PRESENT || echo none)"'
+for h in workstation-nixos laptop-nixos server-nixos; do
+  printf "%-18s " "$h"
+  if [ "$h" = "$(hostname)" ]; then sh -c "$CHECK"; else ssh -n "$h" "$CHECK"; fi
+done
 ```
 
 Also verify shared modules:
