@@ -1,3 +1,15 @@
+# INTENTIONALLY NOT IMPORTED BY ANY HOST — this is not dead code.
+#
+# YubiKey use in this lab is LUKS/FIDO2 unlock only, which needs no PAM or PIV
+# integration (that lives in security/luks.nix, via boot.initrd.systemd + fido2).
+# This module and pam-u2f.nix stay available but unimported deliberately: adding
+# YubiKey to the PAM stack puts a hardware dependency in the sudo/login path, and
+# a lost or unplugged key then locks you out of the machine. Import only with a
+# tested fallback in place. Same applies to home/common/optional/security/yubikey.nix.
+#
+# NOTE: server-nixos does not use FIDO2 unlock at all — it is headless, and a touch
+# requirement is incompatible with unattended boot. It uses TPM2 (see hosts/server).
+
 { config, pkgs, lib, ... }:
 
 {

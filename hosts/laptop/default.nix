@@ -60,6 +60,12 @@
   ################################
   ## Kernel
   ################################
+  # Pinned explicitly, like the other two hosts — never via
+  # zfs.latestCompatibleLinuxPackages, which is deprecated and now resolves to the
+  # nixpkgs default kernel rather than the newest ZFS-compatible one (it silently
+  # downgraded server-nixos 7.0.10 → 6.12.93 on 2026-08-16; see hosts/server).
+  # 6.12 is the LTS and is what this host has been validated on; workstation and
+  # server run 7.0. Bump deliberately and reboot-test WiFi/ZFS when doing so.
   boot.kernelPackages = pkgs.linuxKernel.packages.linux_6_12;
   boot.consoleLogLevel = 1;
 

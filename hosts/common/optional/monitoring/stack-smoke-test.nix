@@ -19,8 +19,15 @@ in
 
   systemd.services.stack-smoke-test = {
     description = "AMD ROCm stack smoke test (ollama + ComfyUI)";
+    # Order after the network is up, but do NOT `wants` it. This unit's Persistent
+    # timer + wants=network-online.target is what pulled the target into the boot
+    # transaction on workstation-nixos, so NetworkManager engaged wlp16s0 at T+1s and
+    # lost the race against ath12k firmware init — wedging WiFi for days (root cause
+    # bisected in docs/audit/postmortem-2026-08-wcn7850-wifi.md; commit 183f279
+    # disabled this module, 769f86b fixed the same pattern in fleet-sentinel and
+    # update-advisor but missed this one, the original culprit). `after` alone still
+    # orders the run correctly; network-online is reached by the network stack anyway.
     after = [ "network-online.target" ];
-    wants = [ "network-online.target" ];
     serviceConfig = {
       Type = "oneshot";
       User = "oat";

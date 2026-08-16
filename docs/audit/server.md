@@ -6,19 +6,54 @@
 - **CPU**: AMD Ryzen AI Max+ 395, 128GB unified RAM
 - **GPU**: AMD Radeon 8060S (RDNA 3.5, integrated)
 - **Storage**: ZFS on LUKS2 (rpool: 2x 1TB NVMe mirror), /storage dataset on rpool
-- **Network**: WiFi + Ethernet — NIC chipset/speed **UNVERIFIED**; likely **5GbE Realtek RTL8126**
-  (Framework Desktop mainboard, same NIC as workstation-nixos). ⚠️ VERIFY on wired return:
-  `lspci -k | grep -iA3 ethernet` + `ethtool <iface>` for negotiated speed, then record here.
-- **Kernel**: `config.boot.zfs.package.latestCompatibleLinuxPackages` (ZFS-safe; resolves to
-  6.12 LTS on nixpkgs 2026-06-30 — was `linuxPackages_latest`, which outran ZFS 2.3.7 at 7.1.2).
-  ⚠️ VERIFY gfx1151 amdgpu/ROCm (ollama + ComfyUI) still work on 6.12 after the update deploy;
-  if regressed, switch to `boot.zfs.package = pkgs.zfs_unstable` + a recent kernel.
+- **Network**: **Wired only.** Ethernet is **5GbE Realtek RTL8126** (`10ec:8126`, driver `r8169`,
+  PCI `bf:00.0`, MAC `9c:bf:0d:01:03:73`) — VERIFIED 2026-08-16 via `lspci -nnk`. Interface
+  `enp191s0`, static **192.168.10.50/24** via the declarative `wired-static` NM profile.
+  Negotiated link speed still unmeasured (`ethtool enp191s0`) — do it on the switch migration.
+  WiFi (MediaTek MT7925, `mt7925e`) is **blacklisted**; see "Wired-only" below.
+- **Kernel**: `pkgs.linuxPackages_7_0` — pinned explicitly 2026-08-16. Do **not** use
+  `zfs.latestCompatibleLinuxPackages`: it is deprecated and now resolves to the nixpkgs
+  *default* kernel, not the newest ZFS-compatible one, inverting the guarantee it was chosen
+  for. It silently built 6.12.93 for a host running 7.0.10 — a major downgrade on next reboot,
+  caught only by inspecting the built initrd. 7.1 still breaks ZFS 2.3.7.
 
-## Pending validation — on server return (wired, post-update)
-1. Confirm NIC (lspci/ethtool) → fill in the Network line above.
-2. Deploy the pending update (`git pull` → `nixos-rebuild switch`); pre-flight `nix eval` now passes.
-3. Verify GPU stack (ollama-rocm gfx1151 + ComfyUI) on the 6.12 LTS kernel.
-4. Plan: server → CRS310-8G+2S+IN **2.5G copper** port (5GbE NIC negotiates 2.5G; fine for
+## Wired-only networking (2026-08-16)
+
+WiFi held a DHCP lease alongside the wired NIC, leaving the host dual-homed with **two default
+routes to the same gateway**. That makes wg0 source-address selection ambiguous and invites
+asymmetric routing. `mt7925e` is now blacklisted (`boot.blacklistedKernelModules`) rather than
+left as an unmanaged interface that could be re-enabled by accident.
+
+The wg0 endpoint (`secrets/network.nix` → `lanIPs.server-nixos`) tracks the **wired** address.
+It previously pointed at the WiFi address, and the earlier `.50` static was a hand-made NM
+profile that did not survive a reboot — NM fell back to an auto-generated DHCP profile and the
+mesh then only converged in whichever direction the server happened to initiate. The profile is
+now declared via `networking.networkmanager.ensureProfiles`.
+
+⚠️ **Open item (router-side):** `192.168.10.50` must sit outside the DHCP pool, or be reserved
+for `9c:bf:0d:01:03:73`. It is a static now, so a competing lease means an address conflict.
+
+## Headless disk unlock (2026-08-16)
+
+LUKS passphrase entry made every reboot a physical errand on a headless box. Both containers
+(`cryptroot0`, `cryptroot1`) now carry a **TPM2 token bound to PCRs 0+7**; the passphrase slot is
+**retained**, not removed. PCRs 4/8/9 are deliberately excluded — they measure
+bootloader/kernel/initrd, so every `nixos-rebuild` would invalidate the seal. A **BIOS/firmware
+update will still break it** and require re-enrolling with `systemd-cryptenroll`.
+
+Rescue path for exactly that case: initrd runs sshd on **:2222** at a static `.50`
+(`ssh -p 2222 root@192.168.10.50`, then `systemd-tty-ask-password-agent`). Its host key lives on
+the unencrypted ESP, so treat it as compromised-by-physical-access — it authenticates the
+endpoint, it does not grant access to data. **Verified working on the 2026-08-16 reboot** (booted
+unattended, no console); the rescue path itself remains untested until a boot actually needs it.
+
+FIDO2/YubiKey unlock is **not** appropriate here — it requires a physical touch, which is
+incompatible with unattended boot.
+
+## Pending validation
+1. `ethtool enp191s0` for negotiated link speed → record above (do at switch migration).
+2. Reserve `.50` at the router, or move it outside the DHCP pool.
+3. Plan: server → CRS310-8G+2S+IN **2.5G copper** port (5GbE NIC negotiates 2.5G; fine for
    DAS-backed NFS). DAS is direct-attached — no switch port needed (see vault Storage-Migration).
 
 ## Networking / switch plan
@@ -131,3 +166,29 @@
 | PAM auth failures from LAN IPs (<lan-subnet>) | SSH correctly rejected — not listening on LAN |
 | `PAM user mismatch` during rebuild | Stale SSH session, transient |
 | WireGuard `REPLACE-WITH-*-PUBLIC-KEY` errors | Historical, from pre-git-crypt-unlock rebuilds |
+
+### 2026-08-16 — Server return: unlock, networking, kernel, module autoload
+
+**Status**: Healthy. Verified against a real cold boot — unattended TPM2 unlock, `.50` via
+`wired-static`, single default route, zero failed units.
+
+**Remediated:**
+
+| Issue | Resolution |
+|-------|-----------|
+| Passphrase prompt on every reboot (headless) | TPM2 enrolled on both containers, PCRs 0+7; passphrase slot kept |
+| No way in if the TPM seal breaks | initrd sshd on :2222 at a static `.50` |
+| Dual-homed — two default routes (WiFi + wired) | `mt7925e` blacklisted; wired-only |
+| wg0 endpoint pointed at the WiFi address | `lanIPs.server-nixos` → `192.168.10.50` (wired) |
+| `.50` static was a hand-made NM profile, lost on reboot | Declared via `ensureProfiles` |
+| `lanIPs.workstation-nixos` stale (`.71`, actual `.92`) | Corrected — the server could not originate handshakes toward it |
+| Kernel silently downgrading 7.0.10 → 6.12.93 | Pinned `pkgs.linuxPackages_7_0`; dropped the deprecated ZFS attr |
+| `/boot`, firewall, NFS, podman failing after every reboot | systemd-initrd module-autoload bug — see `docs/kernel-module-autoload.md` |
+
+**Root cause of the cascade:** `/proc/sys/kernel/modprobe` was still the compiled-in
+`/sbin/modprobe`, which does not exist on NixOS, so every kernel-initiated autoload failed
+silently. `nixos-rebuild switch` masked it by re-running the generators as root, so it recurred
+only on reboot. Same bug laptop-nixos hit on 2026-08-10; that fix was host-scoped and has since
+been extracted to `hosts/common/optional/hardware/kernel-module-autoload.nix`.
+
+**Open (external):** reserve `.50` at the router, or move it outside the DHCP pool.

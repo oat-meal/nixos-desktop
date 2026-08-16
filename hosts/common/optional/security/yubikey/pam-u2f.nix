@@ -1,3 +1,7 @@
+# INTENTIONALLY NOT IMPORTED BY ANY HOST — see yubikey/default.nix for why.
+# Putting a hardware key in the sudo/login path risks lockout; LUKS/FIDO2 unlock
+# (security/luks.nix) is the only YubiKey integration actually in use.
+
 { config, pkgs, lib, ... }:
 
 {

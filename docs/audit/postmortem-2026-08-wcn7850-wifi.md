@@ -85,7 +85,24 @@ firmware/NetworkManager otherwise (`nix store diff-closures` + recursive `/etc` 
 | 4 | Standard risky-change ritual: closure-diff pre-flight → `boot` not `switch` → known-good default → boot-once | Medium | Open (practiced this incident) |
 | 5 | New modules land single-host first, then fleet-wide | Medium | Open |
 | 6 | Re-add monitoring only decoupled from boot, once #2 done | Low | Open |
-| 7 | **Server GPU-vs-ZFS kernel decision** — the ZFS-compatible pin (`latestCompatibleLinuxPackages`, commit `a9fd5cb`) drops the server to **6.12 LTS**; the gfx1151/Strix Halo APU may need a newer kernel for full amdgpu/ROCm. **When the server returns to wired: deploy, then verify ollama-rocm + ComfyUI on 6.12.** If the GPU stack regresses, switch to Option B — keep a recent kernel + `boot.zfs.package = pkgs.zfs_unstable`. | High | **Blocked on server return** |
+| 7 | **Server GPU-vs-ZFS kernel decision** — the ZFS-compatible pin (`latestCompatibleLinuxPackages`, commit `a9fd5cb`) drops the server to **6.12 LTS**; the gfx1151/Strix Halo APU may need a newer kernel for full amdgpu/ROCm. | High | **RESOLVED 2026-08-16** — see below |
+| 8 | **`wants=network-online.target` audit was incomplete.** `769f86b` fixed `fleet-sentinel` and `update-advisor` but missed `stack-smoke-test` — the module that actually caused this outage. It sat disarmed-by-comment in the workstation's imports for two weeks, still carrying the anti-pattern, ready to re-arm on re-enable. Fixed 2026-08-16. **Lesson: when fixing a pattern, grep the whole repo for it; do not fix only the modules you happen to be editing.** | High | Fixed |
+
+### Item 7 — resolution (2026-08-16)
+
+Dropped the deprecated attr entirely; the server is pinned to `pkgs.linuxPackages_7_0`, matching
+workstation-nixos. Two findings from working it:
+
+- **`zfs.latestCompatibleLinuxPackages` is deprecated and now resolves to the nixpkgs *default*
+  kernel**, not the newest ZFS-compatible one — inverting the guarantee it was chosen for. It had
+  silently built 6.12.93 for a host running 7.0.10; the only signal was an eval warning. The
+  downgrade was caught by inspecting the built initrd, not by anything failing.
+- **The gfx1151 concern was unfounded.** `amdgpu` binds by vendor+PCI-class wildcard
+  (`v00001002d*…bc03sc80i00*`), not by explicit device ID, so 6.12 would have driven the Strix
+  Halo fine. Do not test driver support by grepping `modules.alias` for a device ID — the
+  server's *running* kernel has no `1002:1586` alias either, yet `amdgpu` is bound.
+
+Option B (`zfs_unstable` + recent kernel) was not needed and remains unused.
 
 ## Resolution
 - Dropped `stack-smoke-test` + `post-rebuild-verify` from the workstation (commit `183f279`).
