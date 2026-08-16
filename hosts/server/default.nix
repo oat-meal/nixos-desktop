@@ -72,6 +72,20 @@
   boot.initrd.kernelModules = [ "amdgpu" ];
 
   ################################
+  ## Wired-only networking
+  ################################
+  # This host is always wired (enp191s0, persistent NM static 192.168.10.50), so the
+  # MT7925 radio stays off. With WiFi live the box was dual-homed — two default routes
+  # to the same gateway, one per interface — which gives ambiguous source-address
+  # selection for the wg0 endpoint and invites asymmetric routing. Blacklisting the
+  # driver removes the interface outright rather than leaving an unmanaged one to be
+  # re-enabled by accident.
+  #
+  # To restore WiFi: drop this line and rebuild. Note there is no fallback path in if
+  # the wired NIC is down — that recovery is console-only.
+  boot.blacklistedKernelModules = [ "mt7925e" ];
+
+  ################################
   ## Headless — no desktop environment
   ################################
 
