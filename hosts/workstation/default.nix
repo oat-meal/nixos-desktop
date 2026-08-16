@@ -51,10 +51,23 @@
     # Storage
     ../common/optional/storage/zfs-maintenance.nix
 
-    # Monitoring — TEMPORARILY DISABLED (2026-08-03) to test the WiFi regression:
-    # these were the ONLY functional additions between working gen 50 and failing
-    # gen 51 (ath12k "wpa_supplicant couldn't grab interface"). Re-enable once the
-    # WiFi cause is confirmed/ruled out. See docs/audit/workstation.md.
+    # Monitoring — PARKED (2026-08-16). Not blocked, deliberately deferred until the
+    # lab's observability tooling/strategy is re-evaluated as a whole.
+    #
+    # History: disabled 2026-08-03 while bisecting the WiFi regression (these were the
+    # only functional additions between working gen 50 and failing gen 51, ath12k
+    # "wpa_supplicant couldn't grab interface"). That investigation CLOSED — the cause
+    # was confirmed as stack-smoke-test's Persistent timer + wants=network-online.target
+    # pulling the target into the boot transaction (commit 183f279, postmortem item 8).
+    #
+    # Both modules are now safe to re-enable on the technical merits: the anti-pattern
+    # was removed from stack-smoke-test (2026-08-16) and post-rebuild-verify never had
+    # it. They stay off by choice, not by risk. When observability is revisited, decide
+    # whether these ad-hoc units are still the right shape at all — note both alert to
+    # the lab ntfy hub on the server, so neither can report a server that is itself down
+    # (postmortem action item #3, still open).
+    #
+    # See docs/audit/workstation.md and docs/audit/postmortem-2026-08-wcn7850-wifi.md.
     # ../common/optional/monitoring/post-rebuild-verify.nix
     # ../common/optional/monitoring/stack-smoke-test.nix
   ];

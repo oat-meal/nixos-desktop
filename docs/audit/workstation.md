@@ -45,6 +45,13 @@
   - **RE-HARDENING (optional, if ever wanted):** keep monitoring off, OR re-add it
     without `network-online.target`/`Persistent`; the durable fix is `unmanaged` +
     handover **with** an explicit `nmcli device connect wlp16s0` after set-managed.
+  - **STATUS 2026-08-16 — monitoring PARKED, not blocked.** The `wants=network-online.target`
+    was removed from `stack-smoke-test.nix`, so the anti-pattern is gone and both modules
+    are technically safe to re-enable (`post-rebuild-verify.nix` never had it). They stay
+    off by choice pending a whole-lab observability review — see the import block in
+    `hosts/workstation/default.nix` and postmortem action items #6 and #8. Note the
+    anti-pattern survived here for two weeks after `769f86b` "fixed" it elsewhere,
+    because that commit did not grep the repo for the pattern.
 
 - **Kernel 7.0.14 / nixpkgs 2026-06-30 update — DONE, WiFi confirmed working** (2026-08-03).
   The earlier "7.0.14 breaks WiFi (`-517`)" was a **misdiagnosis** — that boot had the

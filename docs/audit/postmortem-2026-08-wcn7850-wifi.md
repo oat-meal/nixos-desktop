@@ -84,7 +84,7 @@ firmware/NetworkManager otherwise (`nix store diff-closures` + recursive `/etc` 
 | 3 | Monitors fail-open + self-check alert delivery; don't target/alert-to hosts that may be down | Medium | Open |
 | 4 | Standard risky-change ritual: closure-diff pre-flight → `boot` not `switch` → known-good default → boot-once | Medium | Open (practiced this incident) |
 | 5 | New modules land single-host first, then fleet-wide | Medium | Open |
-| 6 | Re-add monitoring only decoupled from boot, once #2 done | Low | Open |
+| 6 | Re-add monitoring only decoupled from boot, once #2 done | Low | **PARKED 2026-08-16** — technical blocker cleared (item 8); re-enable deferred to a whole-lab observability review, not to be picked up piecemeal |
 | 7 | **Server GPU-vs-ZFS kernel decision** — the ZFS-compatible pin (`latestCompatibleLinuxPackages`, commit `a9fd5cb`) drops the server to **6.12 LTS**; the gfx1151/Strix Halo APU may need a newer kernel for full amdgpu/ROCm. | High | **RESOLVED 2026-08-16** — see below |
 | 8 | **`wants=network-online.target` audit was incomplete.** `769f86b` fixed `fleet-sentinel` and `update-advisor` but missed `stack-smoke-test` — the module that actually caused this outage. It sat disarmed-by-comment in the workstation's imports for two weeks, still carrying the anti-pattern, ready to re-arm on re-enable. Fixed 2026-08-16. **Lesson: when fixing a pattern, grep the whole repo for it; do not fix only the modules you happen to be editing.** | High | Fixed |
 
