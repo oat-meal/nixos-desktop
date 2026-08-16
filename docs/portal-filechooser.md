@@ -118,10 +118,15 @@ feature — hence the literal username.
 `nixos-rebuild switch` alone does **not** apply this: `user.conf` is only read when the user
 manager re-execs. Run `systemctl --user daemon-reexec` or re-login.
 
-## Note on the config above
-`default = [ "gnome" "gtk" ]` is currently **inert** on the mango hosts — the mango package ships
+## Note on the config above — RESOLVED 2026-08-16
+The `default = [ "gnome" "gtk" ]` shown in the FileChooser fix above is **historical**. It was
+inert on the mango hosts: the mango package ships
 `/etc/xdg/xdg-desktop-portal/mango-portals.conf` with `default=gtk`, and a desktop-specific
-config file wins over the generic `portals.conf` this repo generates. `xdg-desktop-portal-gnome`
-is listed in `extraPortals` but is not running. If that package ever stops shipping its conf,
-everything falls back to a GNOME backend that isn't there — the same failure documented at the
-top of this file, for AppChooser instead of FileChooser.
+config file wins over the generic `portals.conf` this repo generates — so the GNOME backend was
+listed in `extraPortals` but never selected.
+
+`base.nix` now declares **GTK only** (`default = [ "gtk" ]`, `extraPortals = [ gtk ]`). The GNOME
+backend was wrong for these hosts on *every* interface, not just FileChooser: its
+implementations delegate to GNOME components that aren't running — FileChooser to Nautilus,
+AppChooser to GNOME Shell. Keeping it listed meant that if the mango package ever stopped
+shipping its conf, everything would fall back to a backend that isn't there.

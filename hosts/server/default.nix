@@ -79,6 +79,13 @@ in
   # Load amdgpu early for display during LUKS passphrase prompt (RDNA 3.5)
   boot.initrd.kernelModules = [ "amdgpu" ];
 
+  # Lower than the fleet default of 10 (hosts/common/core/boot.nix). This host's initrd is
+  # the fattest — ZFS + amdgpu + systemd-initrd — at ~45MB per ESP entry against a 510MB
+  # partition. Ten entries would sit at ~88%, and systemd-boot writes the new entry BEFORE
+  # pruning the old ones, so a switch momentarily needs eleven (~97%). A full ESP fails
+  # nixos-rebuild at the bootloader step, which on a headless host means a console trip.
+  boot.loader.systemd-boot.configurationLimit = 6;
+
   ################################
   ## Wired-only networking
   ################################

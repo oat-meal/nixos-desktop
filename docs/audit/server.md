@@ -9,7 +9,10 @@
 - **Network**: **Wired only.** Ethernet is **5GbE Realtek RTL8126** (`10ec:8126`, driver `r8169`,
   PCI `bf:00.0`, MAC `9c:bf:0d:01:03:73`) — VERIFIED 2026-08-16 via `lspci -nnk`. Interface
   `enp191s0`, static **192.168.10.50/24** via the declarative `wired-static` NM profile.
-  Negotiated link speed still unmeasured (`ethtool enp191s0`) — do it on the switch migration.
+  Negotiated link: **2500 Mb/s, full duplex** (verified 2026-08-16) — as predicted, the 5GbE
+  NIC settles at 2.5G on the current copper path. Read it without root via
+  `cat /sys/class/net/enp191s0/speed`; `ethtool` was missing from this host until 2026-08-16
+  and is now in core packages.
   WiFi (MediaTek MT7925, `mt7925e`) is **blacklisted**; see "Wired-only" below.
 - **Kernel**: `pkgs.linuxPackages_7_0` — pinned explicitly 2026-08-16. Do **not** use
   `zfs.latestCompatibleLinuxPackages`: it is deprecated and now resolves to the nixpkgs
@@ -51,10 +54,13 @@ FIDO2/YubiKey unlock is **not** appropriate here — it requires a physical touc
 incompatible with unattended boot.
 
 ## Pending validation
-1. `ethtool enp191s0` for negotiated link speed → record above (do at switch migration).
-2. Reserve `.50` at the router, or move it outside the DHCP pool.
-3. Plan: server → CRS310-8G+2S+IN **2.5G copper** port (5GbE NIC negotiates 2.5G; fine for
-   DAS-backed NFS). DAS is direct-attached — no switch port needed (see vault Storage-Migration).
+1. ~~Negotiated link speed~~ — **DONE 2026-08-16**: 2500 Mb/s full duplex.
+2. **Reserve `.50` at the router**, or move it outside the DHCP pool. The address is a static
+   now, so a competing lease means an address conflict. Router-side; the only item here that
+   cannot be done from the hosts.
+3. Plan: server → CRS310-8G+2S+IN **2.5G copper** port. Already negotiating 2.5G today, so the
+   switch migration should be a no-change for throughput. DAS is direct-attached — no switch
+   port needed (see vault Storage-Migration).
 
 ## Networking / switch plan
 - **Switch (ordered):** MikroTik **CRS310-8G+2S+IN** — 8× 2.5G RJ45 + 2× SFP+ (10G), fanless,

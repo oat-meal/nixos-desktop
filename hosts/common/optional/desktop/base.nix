@@ -13,11 +13,18 @@
   ################################
   xdg.portal = {
     enable = true;
-    extraPortals = [ pkgs.xdg-desktop-portal-gnome pkgs.xdg-desktop-portal-gtk ];
+    # GTK only. The GNOME backend is wrong for these hosts on every interface, not just
+    # FileChooser: its implementations delegate to GNOME components that are not running
+    # here — FileChooser to Nautilus (fails silently, broke Obsidian's folder picker) and
+    # AppChooser to GNOME Shell. Nothing was selecting it in practice anyway: the mango
+    # package ships /etc/xdg/xdg-desktop-portal/mango-portals.conf with default=gtk, and a
+    # desktop-specific config file wins over the generic portals.conf generated from here,
+    # so `default = [ "gnome" "gtk" ]` was inert. Making it explicit means the config says
+    # what actually happens, and removes the trap of falling back to an absent backend if
+    # that package ever stops shipping its conf.
+    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
     config.common = {
-      default = [ "gnome" "gtk" ];
-      # GNOME's FileChooser delegates to Nautilus (not installed) and fails silently
-      # (breaks file/folder pickers, e.g. Obsidian). GTK's portal has a built-in chooser.
+      default = [ "gtk" ];
       "org.freedesktop.impl.portal.FileChooser" = [ "gtk" ];
     };
   };

@@ -29,6 +29,7 @@
 
     # Hardware
     ../common/optional/hardware/amd.nix
+    ../common/optional/hardware/kernel-module-autoload.nix
     ../common/optional/hardware/bluetooth.nix
     ../common/optional/hardware/printing.nix
 
