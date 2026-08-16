@@ -4,6 +4,9 @@
 
 { config, pkgs, lib, ... }:
 
+let
+  secrets = import ../../secrets/network.nix;
+in
 {
   imports = [
     ./hardware-configuration.nix
@@ -84,6 +87,55 @@
   # To restore WiFi: drop this line and rebuild. Note there is no fallback path in if
   # the wired NIC is down — that recovery is console-only.
   boot.blacklistedKernelModules = [ "mt7925e" ];
+
+  ################################
+  ## Headless disk unlock
+  ################################
+  # This host is headless, so the LUKS passphrase prompt made every reboot a
+  # physical errand. TPM2 unseals both containers automatically; the passphrase
+  # slot is kept as the last-resort fallback and is NOT removed.
+  #
+  # Enrol out-of-band (once per container, prompts for the current passphrase):
+  #   sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0+7 \
+  #     /dev/disk/by-uuid/3b9b7527-7e54-4e86-9c4f-17ed2b0ae357
+  #   sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0+7 \
+  #     /dev/disk/by-uuid/5b0f11a5-9c0e-4610-91b3-181249072eea
+  #
+  # PCRs 0+7 (firmware + Secure Boot state) deliberately exclude 4/8/9 — those
+  # measure bootloader/kernel/initrd, so every nixos-rebuild would invalidate the
+  # seal. A BIOS/firmware update still breaks it and needs re-enrolment.
+  boot.initrd.luks.devices."cryptroot0".crypttabExtraOpts = [ "tpm2-device=auto" ];
+  boot.initrd.luks.devices."cryptroot1".crypttabExtraOpts = [ "tpm2-device=auto" ];
+
+  # Rescue path for exactly that case: when the seal no longer matches, boot falls
+  # back to asking for the passphrase. Without a way in that means attaching a
+  # monitor; with this, unlock remotely instead:
+  #   ssh -p 2222 root@192.168.10.50   then: systemd-tty-ask-password-agent
+  #
+  # The initrd sshd is reachable on the LAN (initrd has no firewall) and only
+  # during the unlock window. Its host key lives on the unencrypted ESP, so treat
+  # it as compromised-by-physical-access — it authenticates the endpoint, it does
+  # not grant access to data.
+  boot.initrd.availableKernelModules = [ "r8169" ];  # wired NIC, needed in initrd
+  boot.initrd.network = {
+    enable = true;
+    ssh = {
+      enable = true;
+      port = 2222;                                  # distinct from the real sshd
+      authorizedKeys = lib.attrValues secrets.sshKeys;
+      # Generate once on the host (string path keeps the private key out of the store):
+      #   sudo mkdir -p /etc/secrets/initrd
+      #   sudo ssh-keygen -t ed25519 -N "" -f /etc/secrets/initrd/ssh_host_ed25519_key
+      hostKeys = [ "/etc/secrets/initrd/ssh_host_ed25519_key" ];
+    };
+  };
+
+  # Static address in initrd so the rescue endpoint is always at a known IP
+  # (NetworkManager's .50 static does not exist this early).
+  boot.initrd.systemd.network.networks."10-wired" = {
+    matchConfig.Name = "enp191s0";
+    address = [ "192.168.10.50/24" ];
+  };
 
   ################################
   ## Headless — no desktop environment
