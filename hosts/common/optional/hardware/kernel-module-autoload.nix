@@ -45,6 +45,12 @@
       "network-pre.target"
       "NetworkManager.service"
       "wpa_supplicant.service"
+      # NFS mounts race the fix otherwise: server-nixos booted 2026-08-16 with
+      # "mount: /proc/fs/nfsd: unknown filesystem type 'nfsd'" because this unit had
+      # not run yet. Ordering against units absent on a host is a no-op, so these are
+      # safe to list unconditionally.
+      "proc-fs-nfsd.mount"
+      "var-lib-nfs-rpc_pipefs.mount"
     ];
     unitConfig.DefaultDependencies = false;
     serviceConfig = {
