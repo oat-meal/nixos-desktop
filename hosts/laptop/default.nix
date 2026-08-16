@@ -28,6 +28,7 @@
     ../common/optional/hardware/amd.nix
     ../common/optional/hardware/bluetooth.nix
     ../common/optional/hardware/framework.nix
+    ../common/optional/hardware/kernel-module-autoload.nix
 
     # Networking
     ../common/optional/networking/firewall.nix
@@ -68,67 +69,9 @@
     "amdgpu.abmlevel=0"  # Disable adaptive backlight to prevent GPU idle lockups
   ];
 
-  ################################
-  ## Kernel module autoload fix (2026-08-10)
-  ################################
-  # On this host (linux_6_12 + systemd-initrd) the NixOS activation step that
-  # points /proc/sys/kernel/modprobe at the real kmod modprobe does not take
-  # effect at boot, leaving it at the compiled-in default "/sbin/modprobe"
-  # (which does not exist on NixOS). That silently breaks on-demand kernel
-  # module autoloading, cascading into: /boot (vfat) failing to mount, the
-  # firewall failing ("nft: Protocol not supported"), and a crippled network
-  # stack. `nixos-rebuild switch` runs activation as full root and fixes it for
-  # the running session, but it recurs on every reboot. Two independent, boot-
-  # ordered safeguards (systemd-sysctl and systemd-modules-load both hold
-  # CAP_SYS_MODULE and run before firewall.service / boot.mount):
-
-  # 1. Set the autoload helper path via systemd-sysctl (covers ALL on-demand
-  #    module autoloading — firewall nftables modules, hotplugged hardware, …).
-  boot.kernel.sysctl."kernel.modprobe" = "${pkgs.kmod}/bin/modprobe";
-
-  # 2. Guarantee the ESP's filesystem modules are present regardless of the
-  #    autoload path, so /boot always mounts (vfat pulls fat as a dependency).
-  #    af_packet (CONFIG_PACKET=m) is likewise forced: without it socket(AF_PACKET)
-  #    returns EAFNOSUPPORT, breaking NM's DHCP client and wpa_supplicant (WiFi) —
-  #    systemd-modules-load loads it via libkmod, independent of the modprobe path.
-  boot.kernelModules = [ "vfat" "nls_cp437" "nls_iso8859_1" "af_packet" ];
-
-  # 3. Actually run (1) and (2) against the real root.
-  #    Root cause (diagnosed 2026-08-10, boot c99796eb): with systemd-initrd,
-  #    systemd-sysctl.service and systemd-modules-load.service run *inside the
-  #    initrd*, are restarted there by the daemon-reload that initrd-parse-etc
-  #    triggers, and — being Type=oneshot + RemainAfterExit=yes — their
-  #    "active (exited)" state is serialized across switch_root. systemd
-  #    therefore never re-runs them against the real /etc, so /etc/sysctl.d and
-  #    /etc/modules-load.d are silently never applied: every value in
-  #    60-nixos.conf stayed at its kernel default (verified: vm.swappiness 60
-  #    not 1, kernel.pid_max 32768 not 4194304, rp_filter 0 not 2, and
-  #    kernel.modprobe still /sbin/modprobe), and af_packet/vfat were never
-  #    inserted. `nixos-rebuild switch` masks it by restarting both units as
-  #    full root, which is why it only ever recurred on reboot.
-  #    Re-invoking the two generators after switch_root applies both, and does
-  #    so before the consumers that were failing (boot.mount, firewall.service,
-  #    NetworkManager/wpa_supplicant).
-  systemd.services.reapply-kernel-config = {
-    description = "Re-apply /etc/sysctl.d and /etc/modules-load.d after switch-root";
-    wantedBy = [ "sysinit.target" ];
-    before = [
-      "boot.mount"
-      "firewall.service"
-      "network-pre.target"
-      "NetworkManager.service"
-      "wpa_supplicant.service"
-    ];
-    unitConfig.DefaultDependencies = false;
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = [
-        "${config.systemd.package}/lib/systemd/systemd-modules-load"
-        "${config.systemd.package}/lib/systemd/systemd-sysctl"
-      ];
-    };
-  };
+  # Kernel module autoload fix (first diagnosed here 2026-08-10) now lives in
+  # ../common/optional/hardware/kernel-module-autoload.nix, imported above — the
+  # server hit the same bug on 2026-08-16.
 
   ################################
   ## GameMode override (laptop)
