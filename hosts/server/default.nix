@@ -58,12 +58,16 @@ in
   ################################
   ## Kernel
   ################################
-  # ZFS host: track the newest kernel ZFS actually supports, NOT linuxPackages_latest.
-  # ZFS lags kernel releases, so `latest` periodically outruns it and marks
-  # zfs-kernel broken (hit 2026-08-03: nixpkgs 2026-06-30 gave kernel 7.1.2, which
-  # ZFS 2.3.7 didn't support → server config refused to evaluate). This attr always
-  # resolves to a ZFS-compatible kernel, so updates can't break the storage host.
-  boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
+  # ZFS host: pin explicitly. Do NOT use zfs.latestCompatibleLinuxPackages — it is
+  # deprecated and now resolves to the nixpkgs *default* kernel rather than the newest
+  # ZFS-compatible one, inverting the guarantee it was chosen for. Caught 2026-08-16: it
+  # silently built 6.12.93 for a host running 7.0.10, i.e. a major downgrade on the next
+  # reboot with no signal beyond an eval warning.
+  #
+  # 7.0 matches workstation-nixos and is known good here (this host runs 7.0.x with ZFS
+  # today). Do not jump to 7.1 without checking ZFS: nixpkgs 2026-06-30 gave 7.1.2, which
+  # ZFS 2.3.7 did not support → the config refused to evaluate.
+  boot.kernelPackages = pkgs.linuxPackages_7_0;
 
   # ZFS ARC 32GB
   boot.kernelParams = [
