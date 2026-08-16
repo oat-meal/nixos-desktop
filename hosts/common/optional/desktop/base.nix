@@ -22,6 +22,19 @@
     };
   };
 
+  # PAM starts the systemd user manager with only systemd's own bin dir on PATH, and every
+  # user service inherits it — including xdg-desktop-portal. GIO validates a .desktop entry by
+  # resolving its Exec binary on PATH and silently discards entries it cannot resolve, so the
+  # portal's AppChooser returned an empty list: every URL/file open (e.g. a link clicked inside
+  # a Steam game) produced a "no apps available" dialog with nothing selectable. Zen registers
+  # as `Exec=zen-beta`, a bare command name, so it was discarded along with everything else.
+  # Set the PATH on the manager itself so it is in place before any portal is D-Bus activated.
+  # DefaultEnvironment does not expand %u (specifiers are a unit-file feature), hence the
+  # literal user name; both mango hosts are single-user.
+  systemd.user.extraConfig = ''
+    DefaultEnvironment="PATH=/run/wrappers/bin:/etc/profiles/per-user/oat/bin:/home/oat/.nix-profile/bin:/run/current-system/sw/bin"
+  '';
+
   ################################
   ## Polkit (Noctalia provides the authentication agent at runtime)
   ################################
