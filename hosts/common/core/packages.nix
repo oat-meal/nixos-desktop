@@ -28,5 +28,9 @@
   # any root context with its own HOME did not — a systemd-run nixos-rebuild failed on
   # exactly this 2026-08-16. This does NOT invite running git as root (see
   # docs/deployment-issues.md); it stops a legitimate root reader from failing.
+  # `enable` is required: programs.git.config is inert without it (the module only writes
+  # /etc/gitconfig when enabled). git is already in systemPackages above; enabling the module
+  # is what materialises the system-level config.
+  programs.git.enable = true;
   programs.git.config.safe.directory = [ "/etc/nixos" ];
 }
