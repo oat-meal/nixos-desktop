@@ -73,15 +73,21 @@ in
     extraConfig = ''
       # ---------------- Displays (HiDPI scaling) ----------------
       # Framework 13 internal panel is 2880x1920 on a 13.5" screen (~250 PPI);
-      # at scale 1.0 everything renders tiny. Scale 1.5 → logical 1920x1280,
-      # sharp (native mode kept) and ~50% larger UI across all apps.
+      # at scale 1.0 everything renders tiny. Scale 2.0 → logical 1440x960 — a small
+      # workspace, but 1.5 (logical 1920x1280) was still too small to read comfortably
+      # at this PPI (raised 2026-08-16). 2.0 is also an INTEGER scale, so it avoids the
+      # fractional-scaling blur that 1.5 inflicts on Xwayland clients.
       # Anchored to ^eDP-1$ so it's a no-op on hosts without that output.
-      monitorrule=name:^eDP-1$,scale:1.5
+      monitorrule=name:^eDP-1$,scale:2.0
 
-      # Workstation LG UltraGear is 3840x2160; scale 2.0 → logical 1920x1080,
-      # matching the laptop's logical width (readable UI) and making the
-      # Sunshine 1080p stream a crisp 1:1 capture. Anchored to ^DP-1$.
-      monitorrule=name:^DP-1$,scale:2.0
+      # Workstation LG UltraGear is 3840x2160 on a ~48" panel (~92 PPI); scale 1.25 →
+      # logical 3072x1728. Was 2.0 (logical 1920x1080) until 2026-08-16 — that was
+      # chosen to give the Sunshine 1080p stream a 1:1 capture, but it traded away most
+      # of the desktop's real estate on a panel whose PPI does not need that much
+      # scaling. Streaming now downscales instead; if the softer stream ever becomes the
+      # bigger annoyance, fix it with a Sunshine-specific mode rather than by shaping the
+      # whole desktop around the capture. Anchored to ^DP-1$.
+      monitorrule=name:^DP-1$,scale:1.25
 
       # ---------------- Appearance ----------------
       gappih=8
