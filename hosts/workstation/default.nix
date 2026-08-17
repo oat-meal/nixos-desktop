@@ -71,6 +71,12 @@
     # See docs/audit/workstation.md and docs/audit/postmortem-2026-08-wcn7850-wifi.md.
     # ../common/optional/monitoring/post-rebuild-verify.nix
     # ../common/optional/monitoring/stack-smoke-test.nix
+
+    # ON by choice, unlike the two above: this one reports a failure mode that is
+    # otherwise indistinguishable from dead hardware, and whose recovery (SysRq forced
+    # reboot) you will not guess. Carries no boot-ordering risk — no Persistent timer,
+    # no wants=network-online.target. See the module header for the 2026-08-16 chain.
+    ../common/optional/monitoring/gpu-wedge-sentinel.nix
   ];
 
   ################################
