@@ -65,10 +65,21 @@ in
   # silently built 6.12.93 for a host running 7.0.10, i.e. a major downgrade on the next
   # reboot with no signal beyond an eval warning.
   #
-  # 7.0 matches workstation-nixos and is known good here (this host runs 7.0.x with ZFS
-  # today). Do not jump to 7.1 without checking ZFS: nixpkgs 2026-06-30 gave 7.1.2, which
-  # ZFS 2.3.7 did not support → the config refused to evaluate.
-  boot.kernelPackages = pkgs.linuxPackages_7_0;
+  # 6.18 LTS (supported upstream to Dec 2028) — matches workstation-nixos. See the
+  # kernel comment there for the full measurement; the short version is that 6.19 and
+  # 7.0 were REMOVED from nixpkgs as EOL upstream, 7.1/7.2 exist but exceed zfs_2_4's
+  # declared kernelMaxSupportedMajorMinor of "7.0", and 6.18 is the newest kernel that
+  # is both packaged and ZFS-supported. Note ZFS does support 7.0 — it is the kernel
+  # that vanished, not ZFS support for it.
+  #
+  # Not an old-vs-new tradeoff: the 7.0.14 running here today is already EOL upstream
+  # and no longer packaged. This moves onto a live LTS branch, which is also what
+  # stops the 2026-08-16 recurrence (pinning a non-LTS line ZFS does not follow).
+  #
+  # The Strix Halo iGPU (gfx1151) is the thing to watch: its support landed around
+  # 6.14-6.15, so 6.18 should cover it, but ROCm/Ollama on gfx1151 is UNVERIFIED on
+  # this kernel — check ollama serves a model after the first reboot.
+  boot.kernelPackages = pkgs.linuxPackages_6_18;
 
   # ZFS ARC 32GB
   boot.kernelParams = [
@@ -238,8 +249,9 @@ in
     # Bind to WireGuard IP (firewall also restricts to wg0)
     host = "10.100.0.2";
     port = 11434;
-    # AMD GPU acceleration (Radeon 8060S, RDNA 3.5, ROCm)
-    acceleration = "rocm";
+    # AMD GPU acceleration (Radeon 8060S, RDNA 3.5, ROCm) comes from the package
+    # itself — `acceleration` was removed in 26.05. pkgs.unstable.ollama-rocm above
+    # already carries it; this line was redundant with it, not a second control.
     # Models on a dedicated ZFS dataset (rpool/storage/ollama, recordsize=1M,
     # compression=off) — zfs send/recv to a DAS pool later, same mountpoint.
     # Point at the dataset root (already exists + owned by ollama, ZFS-persisted),
@@ -334,7 +346,7 @@ in
   };
 
   # Disable LLMNR (unnecessary attack surface on headless server)
-  services.resolved.llmnr = "false";
+  services.resolved.settings.Resolve.LLMNR = "false";
 
   ################################
   ## Server packages

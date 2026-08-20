@@ -38,6 +38,11 @@
   ## Shell & editor
   ################################
   programs.neovim.enable = true;
+  # 26.05 flipped both defaults to false. Pinned to the previous behaviour so the
+  # migration does not quietly drop provider support out from under any plugin.
+  # Safe to set false deliberately if nothing here turns out to need them.
+  programs.neovim.withRuby = true;
+  programs.neovim.withPython3 = true;
   programs.alacritty = {
     enable = true;
     settings = {

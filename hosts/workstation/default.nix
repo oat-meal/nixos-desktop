@@ -91,15 +91,37 @@
   ################################
   ## Kernel
   ################################
-  # Pinned to the 7.0 line (was linuxPackages_latest) as a conservative default for
-  # the bleeding-edge WCN785x/ath12k_wifi7 card. Both 7.0.10 and 7.0.14 are KNOWN-GOOD.
+  # 6.18 LTS (supported upstream to Dec 2028) — the newest kernel that both EXISTS in
+  # 26.05 and works with ZFS. This host is ZFS-root (rpool + storage). Measured:
+  #   6.18.44  present, zfs_2_4 builds      <- chosen
+  #   6.19     REMOVED from nixpkgs (EOL upstream)
+  #   7.0      REMOVED from nixpkgs (EOL upstream)  <- what runs here today
+  #   7.1.8    present, zfs_2_4 REFUSES
+  #   7.2      present, zfs_2_4 REFUSES
+  #
+  # So this is not a choice between old and new: 7.0 is already dead upstream and
+  # gone from nixpkgs. Numerically 6.18 is two releases back (6.18 -> 6.19 -> 7.0;
+  # the "7" is a rollover, not an architectural break), but in support terms it is a
+  # move from an EOL non-LTS branch onto a live LTS one.
+  #
+  # The gap is narrow and unlucky rather than fundamental. zfs_2_4 declares
+  # kernelMaxSupportedMajorMinor = "7.0", so ZFS DOES support 7.0 — it is the kernel
+  # that vanished, not ZFS support for it. Meanwhile nixpkgs keeps only LTS branches
+  # plus the newest non-LTS (here: 7.1, 7.2), which both exceed ZFS's ceiling. So the
+  # highest kernel that is simultaneously packaged and ZFS-supported is 6.18.
+  # Revisit when OpenZFS ships 7.1 support (openzfs/zfs#18760, still open) and
+  # nixpkgs raises the ceiling — then 7.1/7.2 open up.
+  #
+  # Both bits of bleeding-edge hardware here predate 6.18 comfortably — RDNA4/gfx1201
+  # landed in 6.13-6.14, ath12k/WCN785x in ~6.7 — but that is UNVERIFIED until a
+  # reboot test.
+  #
+  # REBOOT-TEST ON FIRST BOOT: WiFi (ath12k, wlp16s0) associates, and the 9070 XT
+  # brings up amdgpu + VAAPI. See docs/audit/workstation.md for the ath12k history.
   #
   # NOTE (2026-08-03): the earlier "7.0.14 breaks WiFi (-517)" belief was WRONG — it
-  # was confounded by the stack-smoke-test monitoring's boot-ordering grab race (see
-  # docs/audit/workstation.md). With that monitoring removed, 7.0.14 boots WiFi
-  # cleanly. The pin now just avoids surprise MAJOR kernel jumps; patch bumps within
-  # 7.0.x are fine. Safe to bump this attr deliberately (and reboot-test WiFi) when wanted.
-  boot.kernelPackages = pkgs.linuxPackages_7_0;
+  # was confounded by the stack-smoke-test monitoring's boot-ordering grab race.
+  boot.kernelPackages = pkgs.linuxPackages_6_18;
   boot.consoleLogLevel = 1;
 
   # Desktop-specific kernel params (gaming optimized)
@@ -259,10 +281,11 @@
       # System
       systemd udev zlib stdenv.cc.cc.lib
       # X11 (required by most unpatched Linux binaries)
-      xorg.libX11 xorg.libXcomposite xorg.libXdamage xorg.libXext
-      xorg.libXfixes xorg.libXrandr xorg.libxcb xorg.libXcursor
-      xorg.libXi xorg.libXrender xorg.libXtst xorg.libXScrnSaver
-      xorg.libxshmfence
+      # The xorg package set is deprecated in 26.05; these are the top-level names.
+      libx11 libxcomposite libxdamage libxext
+      libxfixes libxrandr libxcb libxcursor
+      libxi libxrender libxtst libxscrnsaver
+      libxshmfence
       # Audio/desktop integration
       libpulseaudio libnotify libappindicator-gtk3 libsecret ffmpeg
     ];

@@ -23,10 +23,11 @@
   };
 
   # Hibernate after 5 minutes of suspend
-  systemd.sleep.extraConfig = ''
-    AllowSuspendThenHibernate=yes
-    HibernateDelaySec=5min
-  '';
+  # (26.05: systemd.sleep.extraConfig was removed in favour of the settings attrset.)
+  systemd.sleep.settings.Sleep = {
+    AllowSuspendThenHibernate = "yes";
+    HibernateDelaySec = "5min";
+  };
 
   # Disable USB wakeup sources to prevent spurious wakes during suspend
   # (USB-C/Type-C often triggers immediate wake on s2idle systems)

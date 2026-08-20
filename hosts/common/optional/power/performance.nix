@@ -8,12 +8,13 @@
   powerManagement.cpuFreqGovernor = lib.mkDefault "performance";
 
   # Disable suspend - AMD Ryzen 9950X (Zen 5) has Linux suspend/wake issues
-  systemd.sleep.extraConfig = ''
-    AllowSuspend=no
-    AllowHibernation=no
-    AllowSuspendThenHibernate=no
-    AllowHybridSleep=no
-  '';
+  # (26.05: systemd.sleep.extraConfig was removed in favour of the settings attrset.)
+  systemd.sleep.settings.Sleep = {
+    AllowSuspend = "no";
+    AllowHibernation = "no";
+    AllowSuspendThenHibernate = "no";
+    AllowHybridSleep = "no";
+  };
 
   services.logind.settings.Login = {
     HandleLidSwitch = "ignore";

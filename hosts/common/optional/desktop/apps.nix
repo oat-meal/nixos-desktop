@@ -9,10 +9,11 @@
 
   environment.systemPackages = with pkgs; [
     # File management
-    xfce.thunar
-    xfce.thunar-volman
-    xfce.thunar-archive-plugin
-    xfce.tumbler
+    # The Thunar packages all moved to top-level in 26.05.
+    thunar
+    thunar-volman
+    thunar-archive-plugin
+    tumbler
     xarchiver
     trash-cli
 
@@ -27,11 +28,12 @@
     bibata-cursors
 
     # X11 compatibility
-    xorg.libXcursor
-    xorg.libX11
-    xorg.libXrandr
-    xorg.libXext
-    xorg.libxcb
+    # The xorg package set is deprecated in 26.05; these are the top-level names.
+    libxcursor
+    libx11
+    libxrandr
+    libxext
+    libxcb
 
     # Multimedia
     ffmpeg

@@ -25,6 +25,10 @@
       };
     };
 
+    # 26.05 changed this default from config.gtk.theme to null, which would leave GTK4
+    # apps unthemed while GTK2/3 stayed Catppuccin. Pinned to the previous behaviour.
+    gtk4.theme = config.gtk.theme;
+
     iconTheme = {
       name = "Papirus-Dark";
       package = pkgs.catppuccin-papirus-folders;

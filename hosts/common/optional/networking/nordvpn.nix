@@ -11,7 +11,7 @@
   # DNS resolution for VPN
   services.resolved = {
     enable = true;
-    dnssec = "false";  # Some VPNs have issues with DNSSEC
+    settings.Resolve.DNSSEC = "false";  # Some VPNs have issues with DNSSEC
   };
 
   # VPN firewall rules (base firewall in networking/firewall.nix)

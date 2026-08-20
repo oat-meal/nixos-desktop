@@ -9,6 +9,9 @@
   programs.yazi = {
     enable = true;
     enableZshIntegration = true;
+    # Home Manager changed this default from "yy" to "y" in 26.05. Pinned to the
+    # existing name so the migration does not silently change the shell command.
+    shellWrapperName = "yy";
 
     settings = {
       manager = {

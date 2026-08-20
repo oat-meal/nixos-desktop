@@ -23,6 +23,8 @@
     pamixer
     pulseaudio
     alsa-utils
-    helvum
+    # helvum was removed in 26.05 (unmaintained, vulnerable dependency); crosspipe is
+    # the suggested replacement and fills the same role — a PipeWire patchbay GUI.
+    crosspipe
   ];
 }

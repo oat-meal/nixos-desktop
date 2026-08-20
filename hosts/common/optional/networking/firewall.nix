@@ -24,5 +24,5 @@
   };
 
   # Disable LLMNR (Windows name resolution, unnecessary attack surface)
-  services.resolved.llmnr = lib.mkDefault "false";
+  services.resolved.settings.Resolve.LLMNR = lib.mkDefault "false";
 }
