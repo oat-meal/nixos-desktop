@@ -27,6 +27,9 @@
     ../common/optional/ai/eliteintel.nix
     ../common/optional/ai/comfyui-render.nix  # image-gen render node (ComfyUI on the 9070 XT)
 
+    # Development
+    ../common/optional/dev/gamedev.nix  # Blender — required by 7 forge build-time tools
+
     # Hardware
     ../common/optional/hardware/amd.nix
     ../common/optional/hardware/kernel-module-autoload.nix
