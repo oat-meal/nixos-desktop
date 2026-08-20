@@ -115,7 +115,10 @@ in
       warpcursor=0
       tap_to_click=1
       trackpad_natural_scrolling=1
-      disable_while_typing=1
+      # Renamed upstream 2026-07/08: the bare disable_while_typing is now only
+      # valid inside an inputrule block; the global option carries the
+      # trackpad_ prefix. Same semantics, same default source.
+      trackpad_disable_while_typing=1
 
       # ---------------- Default layout per tag: scroller ----------------
       tagrule=id:1,layout_name:scroller

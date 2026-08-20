@@ -38,9 +38,16 @@
 
     # MangoWM — dwl-based Wayland compositor. The desktop compositor on all
     # desktop hosts (niri fully removed 2026-07-04).
+    #
+    # Follows nixpkgs-unstable, NOT nixpkgs: since 2026-07-08 mango requires
+    # wlroots_0_20, which 25.11 does not package (it stops at 0_19). Pinning
+    # mango back to a wlroots_0_19 rev is not an option — the selmon NULL-deref
+    # fix in keypress() landed after that bump, and that crash takes the whole
+    # session down on the first keypress after the only monitor sleeps.
+    # Revisit if/when 25.11 gains wlroots_0_20.
     mango = {
       url = "github:mangowm/mango";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
   };
 
