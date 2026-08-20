@@ -10,11 +10,18 @@
 # laptop, add the host by IP 10.100.0.1 (mDNS/avahi discovery does not traverse wg0), then
 # enter the PIN Sunshine shows to pair. Everything below is wg0-only.
 
-{ ... }:
+{ pkgs, ... }:
 
 {
   services.sunshine = {
     enable = true;
+    # From unstable, NOT nixpkgs: CVE-2026-32253 (auth bypass — the TLS verify callback
+    # treated UNABLE_TO_GET_ISSUER_CERT_LOCALLY / CERT_NOT_YET_VALID / CERT_HAS_EXPIRED
+    # as success, so untrusted certs reached protected HTTPS endpoints) is fixed in
+    # 2026.516.143833. nixos-25.11 froze at 2025.924.154138 before that landed and is
+    # EOL, so no flake update will ever deliver it on this channel.
+    # Drop this override once nixpkgs moves to 26.05, which carries the fixed version.
+    package = pkgs.unstable.sunshine;
     # CAP_SYS_ADMIN for DRM/KMS capture of the Wayland (Mango/wlroots) session. Granted
     # only to the sunshine wrapper binary via security.wrappers.
     capSysAdmin = true;
