@@ -112,12 +112,17 @@
   # Revisit when OpenZFS ships 7.1 support (openzfs/zfs#18760, still open) and
   # nixpkgs raises the ceiling — then 7.1/7.2 open up.
   #
-  # Both bits of bleeding-edge hardware here predate 6.18 comfortably — RDNA4/gfx1201
-  # landed in 6.13-6.14, ath12k/WCN785x in ~6.7 — but that is UNVERIFIED until a
-  # reboot test.
+  # VERIFIED on the 2026-08-21 reboot: 6.18.44 boots, ZFS 2.4.3 loads and imports both
+  # pools, 0 failed units, and the 9070 XT comes up on Mesa 26.1.5 (gfx1201, DRM 3.64)
+  # with the KFD compute nodes present and the ComfyUI container running.
   #
-  # REBOOT-TEST ON FIRST BOOT: WiFi (ath12k, wlp16s0) associates, and the 9070 XT
-  # brings up amdgpu + VAAPI. See docs/audit/workstation.md for the ath12k history.
+  # WiFi is NOT part of that check, and must not be re-added to it: the WCN7850 is
+  # DISABLED IN BIOS as of 2026-08-21 and this host is wired-only (enp17s0, RTL8126
+  # 5GbE). A BIOS disable removes the card from PCI enumeration entirely, so the
+  # absence of `wlp16s0`, of any ath12k log line, and NetworkManager reporting
+  # `WIFI-HW: missing` are all EXPECTED here — not a driver or kernel regression.
+  # The ath12k plumbing below (initrd module, shutdown cleanup unit) is retained
+  # deliberately so re-enabling in BIOS is the only step needed to get WiFi back.
   #
   # NOTE (2026-08-03): the earlier "7.0.14 breaks WiFi (-517)" belief was WRONG — it
   # was confounded by the stack-smoke-test monitoring's boot-ordering grab race.
