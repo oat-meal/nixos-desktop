@@ -31,7 +31,21 @@
   #    path. systemd-modules-load inserts these via libkmod, independent of
   #    kernel.modprobe. vfat pulls fat as a dependency; without af_packet,
   #    socket(AF_PACKET) returns EAFNOSUPPORT and DHCP/wpa_supplicant break.
-  boot.kernelModules = [ "vfat" "nls_cp437" "nls_iso8859_1" "af_packet" ];
+  #
+  #    rfkill added 2026-08-21, same family, found on the 26.05 migration reboot.
+  #    wpa_supplicant.service sandboxes itself with a mount namespace that binds
+  #    /dev/rfkill, and systemd refuses to build the namespace if the node is
+  #    absent — the unit dies at `step NAMESPACE` with status=226 before it ever
+  #    runs. The node only exists once the rfkill module is loaded. On a host with
+  #    a working wireless driver that happens early enough by autoload; on
+  #    server-nixos the wireless driver never loads at all (MT7925 present but
+  #    undriven), so rfkill only arrived later as a side effect of bluetooth, and
+  #    wpa_supplicant lost the race on EVERY boot. Loading it explicitly removes
+  #    the race rather than ordering around it — (3) below is already ordered
+  #    before wpa_supplicant.service, so the module is in place by then.
+  #    A restart of the unit always succeeded, which is the tell that this was
+  #    ordering and not capability.
+  boot.kernelModules = [ "vfat" "nls_cp437" "nls_iso8859_1" "af_packet" "rfkill" ];
 
   # 3. Actually apply (1) and (2) against the real root. Re-invoking the two
   #    generators after switch_root applies both, ordered before the consumers
