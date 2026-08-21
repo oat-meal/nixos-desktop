@@ -81,6 +81,26 @@ in
   # this kernel — check ollama serves a model after the first reboot.
   boot.kernelPackages = pkgs.linuxPackages_6_18;
 
+  # Force-load the WiFi driver. Found 2026-08-21: the MT7925 (RZ717) at c0:00.0 had
+  # NO driver bound and zero mt79* lines in the kernel log — on 6.18.44 and on the
+  # preceding 7.0.14 alike, so this long predates the 26.05 migration.
+  #
+  # Not a packaging problem: the module ships in this kernel, its firmware is in
+  # linux-firmware (mediatek/mt7925/*), there is no blacklist, and the device
+  # modalias resolves correctly (`modprobe -R <modalias>` -> mt7925e). laptop-nixos
+  # has the SAME card in the SAME slot and binds it fine — so the difference is this
+  # host's boot path, not the hardware or nixpkgs.
+  #
+  # Cause is the switch_root/udev family documented in
+  # optional/hardware/kernel-module-autoload.nix: this host's initrd runs networking
+  # for the LUKS rescue sshd, so udev coldplugs PCI there, mt7925e is not an initrd
+  # module, and the probe is never retried against the real root.
+  #
+  # Adding it to boot.initrd.availableKernelModules would also work but is the worse
+  # trade — this initrd is already the fattest in the fleet at ~45MB per ESP entry
+  # against a 510MB partition (see the configurationLimit note in core/boot.nix).
+  boot.kernelModules = [ "mt7925e" ];
+
   # ZFS ARC 32GB
   boot.kernelParams = [
     "zfs.zfs_arc_max=34359738368"
