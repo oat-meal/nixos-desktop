@@ -27,7 +27,12 @@ rebuild_local() {
 push_repo() {
   echo "==> Pushing to git"
   cd "$FLAKE"
-  nix-shell -p git-crypt --run 'git add -A && git push'
+  # No `git add -A` here. Staging on the user's behalf is what made the missing
+  # commit invisible: the change looked handled, `git push` had nothing new to
+  # send, and the remote rebuilt an identical closure. The clean-tree guard above
+  # now catches this before anything is pushed, so staging here is both
+  # unnecessary and actively misleading.
+  nix-shell -p git-crypt --run 'git push'
 }
 
 rebuild_remote() {
@@ -100,6 +105,34 @@ for host in "${eval_targets[@]}"; do
   fi
   echo "  $host: OK"
 done
+
+# A dirty tree is fine locally and silently useless remotely, so the guard is
+# scoped to remote targets only.
+#
+# Local rebuilds pass --flake "$FLAKE#$LOCAL", which reads the working tree, so
+# uncommitted edits apply. Remote rebuilds go through git: push_repo pushes, the
+# host pulls, and nixos-rebuild runs against whatever landed there. Anything not
+# committed never leaves this machine.
+#
+# Before this guard that failed silently and expensively: the deploy reported
+# success, the host rebuilt an identical closure, no generation was created, and
+# nothing changed — with the plan above having already listed the very changes it
+# was about to not deploy. Cost two reboots on 2026-08-24 to notice.
+remote_targets=()
+for host in "${eval_targets[@]}"; do
+  [[ "$host" != "$LOCAL" ]] && remote_targets+=("$host")
+done
+
+if [[ -n "$changes" && ${#remote_targets[@]} -gt 0 ]]; then
+  echo ""
+  echo "ERROR: uncommitted changes, but ${remote_targets[*]} deploy(s) via git."
+  echo "Those changes would NOT reach the remote host, and the deploy would"
+  echo "report success having changed nothing. Commit first:"
+  echo ""
+  echo "  git -C $FLAKE commit -am '<what changed>'"
+  echo ""
+  exit 1
+fi
 
 confirm "Proceed with deployment?"
 
