@@ -85,6 +85,22 @@ in
   boot.kernelParams = [
     "zfs.zfs_arc_max=34359738368"
     "spl.spl_hostid=0xdc598b84"  # claim rpool with system hostid at initrd import; clears hostid-mismatch warning
+
+    # amdgpu defaults GTT to 50% of RAM — measured 62.5 GiB here — which caps what
+    # the iGPU can address no matter how much is installed (ROCm#5595, open). That
+    # ceiling, not the 125 GiB fitted, is what bounds model size on this host.
+    #
+    # gttsize is in MiB and must be matched by ttm.pages_limit in 4 KiB pages, or
+    # allocations fail once they pass the lower of the two. 80 GiB = 81920 MiB =
+    # 20971520 pages. Budget: 125 total - 80 GTT - 32 ARC leaves ~13 GiB for the OS
+    # and the rest of the service set. GTT is a ceiling rather than a reservation,
+    # but GPU-pinned pages are not reclaimable, so it is sized against zfs_arc_max
+    # above — raising one means lowering the other.
+    #
+    # amdgpu.gtt_size (underscore) is the deprecated spelling and is silently
+    # ignored; the value has to be on amdgpu.gttsize to take effect.
+    "amdgpu.gttsize=81920"
+    "ttm.pages_limit=20971520"
   ];
 
   # Load amdgpu early for display during LUKS passphrase prompt (RDNA 3.5)
@@ -261,9 +277,16 @@ in
     environmentVariables = {
       OLLAMA_NUM_PARALLEL = "2";
       OLLAMA_KEEP_ALIVE = "30m";
-      # 0.24 defaults the 70B to a 256K context; with NUM_PARALLEL=2 that KV cache
-      # exceeds RAM. Cap to a sane default (per-request num_ctx can still go higher).
-      OLLAMA_CONTEXT_LENGTH = "8192";
+      # Was 8192, because 0.24 defaults the 70B to a 256K context and with
+      # NUM_PARALLEL=2 that KV cache exceeded RAM. That reasoning still holds — the
+      # headroom is what changed: the GTT cap above now admits 80 GiB rather than
+      # the 62.5 GiB amdgpu picked by default, so 32K x 2 parallel fits.
+      #
+      # 8192 is too small for retrieval or agent work: tool definitions and a
+      # handful of retrieved passages exhaust it before the task starts. Raising
+      # the floor here rather than per-request because every caller hit it.
+      # Per-request num_ctx can still go higher for one-off long-context jobs.
+      OLLAMA_CONTEXT_LENGTH = "32768";
       # Flash attention: faster attention + smaller KV cache on ROCm. Speeds up
       # generation and lets the warm model use less VRAM.
       OLLAMA_FLASH_ATTENTION = "1";
