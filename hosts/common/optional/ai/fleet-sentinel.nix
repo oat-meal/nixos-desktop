@@ -36,6 +36,12 @@ in
       TimeoutStartSec = "300";            # model load + triage headroom
       Environment = [
         "OLLAMA_HOST_URL=http://10.100.0.2:11434"
+        # Left as-is. qwen3:30b-a3b ignores `think: false` in general, but this
+        # call passes `format: ENRICH_SCHEMA`, and schema-constrained decoding
+        # stops it running on — measured 2026-08-25: 70 tokens, done=stop, 5.5s.
+        # A swap to qwen2.5:7b would be faster (2.0s) and far smaller to load,
+        # but that is a robustness preference, not a fix, and should be decided
+        # on its own merits rather than smuggled in as one.
         "SENTINEL_MODEL=qwen3:30b-a3b"
         "KNOWN_STATES=/etc/nixos/docs/audit/known-states.md"
         "SENTINEL_REPORT=/var/lib/fleet-sentinel/latest.md"

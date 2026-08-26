@@ -18,7 +18,9 @@ import json
 import os
 import re
 import subprocess
+import sys
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 HOSTS = {"server": None, "workstation": "10.100.0.1", "laptop": "10.100.0.3"}
@@ -66,9 +68,16 @@ def collect() -> dict:
         "echo @@@JOURNAL@@@; journalctl -p err --since '24 hours ago' --no-pager -o short 2>/dev/null "
         "| grep -avE 'split.lock|pulseaudio|gkr-pam|MES arb|amdgpu|pidns|gtk_widget_get_scale' | tail -12"
     )
+    # Hosts are probed in parallel. Serially, one sleeping laptop costs its
+    # whole ConnectTimeout before the next host is even tried, so the run takes
+    # the SUM of the failures rather than the slowest one. That was tolerable
+    # for a nightly timer and is not for the on-demand `--collect` path, which
+    # a person waits on.
+    with ThreadPoolExecutor(max_workers=max(1, len(HOSTS))) as pool:
+        raws = dict(zip(HOSTS, pool.map(lambda ip: run_on(ip, script), HOSTS.values())))
+
     out = {}
-    for h, ip in HOSTS.items():
-        raw = run_on(ip, script)
+    for h, raw in raws.items():
         low = raw.lower()
         if raw.startswith("ERROR") or any(x in low for x in (
                 "verification failed", "timed out", "refused", "no route",
@@ -227,7 +236,14 @@ def enrich(candidates: list, journal_by_host: dict) -> dict:
                "journal_errors_by_host": journal_by_host}
     body = {
         "model": MODEL, "stream": False, "think": False,
-        "format": ENRICH_SCHEMA, "options": {"temperature": 0.1},
+        # A bound, not a tuning knob. Generation was previously limited only by
+        # OLLAMA_CONTEXT_LENGTH — a *global* setting this service does not own,
+        # which was raised 8192 -> 32768 for an unrelated consumer on
+        # 2026-08-24. `format` already constrains this particular call, so the
+        # window was not in fact reachable here; the point is that relying on a
+        # setting owned elsewhere for a bound is fragile even when it holds.
+        # A triage verdict against a fixed schema needs nowhere near 1024.
+        "format": ENRICH_SCHEMA, "options": {"temperature": 0.1, "num_predict": 1024},
         "messages": [
             {"role": "system", "content": ENRICH_SYSTEM.replace("{known_states}", known)},
             {"role": "user", "content": json.dumps(payload, indent=2)},
@@ -272,7 +288,42 @@ def render(health: dict, verdict: dict, ts: str) -> str:
     return "\n".join(lines)
 
 
+def collect_json() -> str:
+    """Deterministic collection + severity, as JSON. No LLM, no notification.
+
+    Exists so a second consumer does not have to reimplement the checks. Two
+    implementations of "is the fleet healthy" is how they drift, and the one
+    that drifts is always the one nobody is watching.
+
+    Deliberately stops before `enrich()`: severity here is decided by rule, and
+    an on-demand caller wants the facts, not a nightly report's prose. It also
+    must not fire ntfy — asking a question is not an incident.
+    """
+    health = collect()
+    return json.dumps({
+        "hosts": health,
+        "findings": analyze(health),
+        "collected_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+    })
+
+
 def main():
+    # --collect is the reuse seam. Kept to one flag rather than argparse: the
+    # nightly path must stay exactly as it was.
+    args = sys.argv[1:]
+    if args == ["--collect"]:
+        print(collect_json())
+        return
+    # Unknown arguments are rejected rather than ignored. Ignoring them means an
+    # older binary treats a flag it does not understand as "no arguments" and
+    # runs the FULL nightly job — LLM triage, report rewrite, ntfy push. That is
+    # not theoretical: it happened once during development, from a caller that
+    # believed it was asking a read-only question.
+    if args:
+        print(f"fleet-sentinel: unknown arguments: {' '.join(args)}", file=sys.stderr)
+        print("usage: fleet-sentinel [--collect]", file=sys.stderr)
+        raise SystemExit(2)
+
     ts = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
     health = collect()
     candidates = analyze(health)

@@ -23,3 +23,5 @@ ai-lab/sillytavern/
 *.pt
 *.pth
 *.onnx
+__pycache__/
+*.pyc
