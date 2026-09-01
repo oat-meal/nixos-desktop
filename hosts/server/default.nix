@@ -40,6 +40,7 @@ in
     ../common/optional/ai/fleet-sentinel.nix
     ../common/optional/ai/open-webui.nix
     ../common/optional/ai/searxng.nix
+    ../common/optional/ai/search-sentinel.nix   # asserts searxng SEARCHES, not just responds
     ../common/optional/ai/chromadb.nix
     ../common/optional/ai/lab-tools.nix
     ../common/optional/ai/lab-api.nix
