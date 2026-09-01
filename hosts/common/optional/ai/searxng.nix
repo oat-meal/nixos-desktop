@@ -18,15 +18,31 @@
 {
   services.searx = {
     enable = true;
-    # One release ahead of nixos-26.05 (2026-07-26 vs 2026-05-16), following the
-    # lab's existing pkgs.unstable.* pattern.
+    # ⚠️ DO NOT SET `package = pkgs.unstable.searxng`. IT TAKES THE SERVICE DOWN,
+    # and it did on 2026-08-31 — a total outage, HTTP 500 on every route
+    # including the root page, from a one-line change whose own comment called
+    # it optional hygiene.
     #
-    # ⚠️ THIS IS HYGIENE, NOT THE FIX, and it is labelled so because it looked
-    # like the fix. bing.py's result-extraction XPath is BYTE-IDENTICAL between
-    # the two versions — only `number_of_results` scraping and redirect handling
-    # changed. Upgrading on the theory that a stale parser was the cause would
-    # have changed nothing and been reported as a repair.
-    package = pkgs.unstable.searxng;
+    # WHY IT BREAKS. The NixOS module builds uwsgi's interpreter from the STABLE
+    # `python3` (3.13.15) and expects `cfg.package` to live inside that env.
+    # `pkgs.unstable.searxng` is built against python **3.14**, so it lands in a
+    # different site-packages tree that the vassal's PythonHome never sees. The
+    # symptom is `ModuleNotFoundError: No module named 'searx'`, followed by
+    # `no app loaded. going in full dynamic mode` — uwsgi stays UP and serves
+    # 500s, so the unit reads `active` throughout. Measured: the vassal env's
+    # site-packages contained 0 files matching searx.
+    #
+    # The lab's `pkgs.unstable.*` pattern works for ollama-rocm and sunshine
+    # because those are standalone binaries. It does NOT transfer to a module
+    # that constructs its own Python environment: the package and the
+    # interpreter have to come from the same nixpkgs.
+    #
+    # Nothing was lost by reverting. The version bump was never the fix —
+    # bing.py's result-extraction XPath is byte-identical between 2026-05-16 and
+    # 2026-07-26 — and the engine list below is what actually repairs search. If
+    # a newer SearXNG is ever genuinely wanted, it needs the whole module moved
+    # to unstable (`services.searx` from nixpkgs-unstable), not one package
+    # swapped underneath a stable module.
     # Secret injected via envsubst from this file (generated below, not in git).
     environmentFile = "/var/lib/searx-secret/secret.env";
     configureUwsgi = true;
