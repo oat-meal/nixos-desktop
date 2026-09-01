@@ -88,12 +88,44 @@
         { name = "brave"; disabled = true; }        # Suspended: too many requests
         { name = "qwant"; disabled = true; }        # Suspended: access denied
         { name = "mojeek"; disabled = true; }       # Suspended: access denied
+        # ⚠️ MISSED IN THE FIRST PASS AND CAUGHT ONLY BY READING A LIVE DEFAULT
+        # QUERY. startpage is `categories: [general, web]` and NOT disabled
+        # upstream, so it was still being queried after the first deploy and
+        # still failing — `unresponsive_engines: [["startpage", "Suspended:
+        # CAPTCHA"]]` on every default search. It failed honestly, so it cost a
+        # round-trip rather than a wrong answer, but it was in the list of
+        # blocked engines from the very first probe of this investigation and I
+        # did not carry it across. Disabling engines one at a time from memory
+        # is how one survives; the check is a default query, not the config.
+        { name = "startpage"; disabled = true; }    # Suspended: CAPTCHA
 
         # ── ENABLED: APIs, which cannot be blocked for looking like a robot ──
         # They expect robots. That is the entire reason these still work while
         # every scraper above does not.
-        { name = "crossref"; disabled = false; }      # 20 results / 25 mentions
-        { name = "openalex"; disabled = false; }      # 10 / 11
+        # ⭐ `categories` IS THE HALF THAT ENABLING ALONE DOES NOT BUY, and it
+        # was missing from the first deploy. Upstream files these two under
+        # `[science, scientific publications]` ONLY, and a default query
+        # searches `general` — so after the first pass they were enabled,
+        # reachable via `engines=crossref`, and ABSENT from every query a
+        # consumer actually makes. Measured on the live instance: a default
+        # query returned 5 results from wikispecies alone, while
+        # `categories=science` returned ~95 across 8 engines.
+        #
+        # ⚠️ THE PROBE THAT MISSED THIS IS MY OWN SENTINEL. It queries each
+        # engine with an explicit `engines=X`, and explicit selection BYPASSES
+        # `disabled` entirely — proven by bing, which is disabled here and still
+        # returns 10 results when named. So per-engine probes cannot tell an
+        # enabled engine from a disabled one, and cannot see the default path at
+        # all. The sentinel now checks the default path as well.
+        #
+        # Adding `general` is a deliberate change of character: everyday queries
+        # will now return academic sources. For a lab whose search exists to
+        # answer technical and reference questions that is the point, and it is
+        # one line to revert.
+        { name = "crossref"; disabled = false;
+          categories = [ "general" "science" "scientific publications" ]; }
+        { name = "openalex"; disabled = false;
+          categories = [ "general" "science" "scientific publications" ]; }
         { name = "wikipedia"; disabled = false; }     #  2 /  1 — narrow, correct
         { name = "wikispecies"; disabled = false; }   #  5 / 10
         { name = "wikidata"; disabled = false; }      #  0 — no match, reported cleanly

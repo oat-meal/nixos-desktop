@@ -61,7 +61,24 @@ in
       # Twice a day rather than nightly: engine reputation and upstream DOM
       # changes are the failure mode, and both arrive without warning. Offset
       # from fleet-sentinel's 07:30 so the two do not report together.
-      OnCalendar = "*-*-* 08:15,20:15:00";
+      #
+      # ⚠️ THE COMMA GOES INSIDE THE HOUR FIELD, NOT BETWEEN WHOLE TIMES. This
+      # shipped as "*-*-* 08:15,20:15:00" and systemd rejected it outright:
+      # `Failed to parse calendar specification` then `Timer unit lacks value
+      # setting. Refusing.` The timer never armed — `list-timers` showed 0
+      # timers for a unit that had been deployed and enabled.
+      #
+      # ⚠️ AND `systemctl is-enabled` SAID `enabled` THROUGHOUT, while `Loaded:`
+      # read `bad-setting`. That is the third false green in this one change
+      # set, after uwsgi reporting `active` while serving 500s and bing
+      # returning 200s over filler. is-enabled reports the symlink, not whether
+      # the unit parses.
+      #
+      # Validated with `systemd-analyze calendar` before committing this time,
+      # which is the cheap check that would have caught it:
+      #   *-*-* 08:15,20:15:00 -> Failed to parse: Invalid argument
+      #   *-*-* 08,20:15:00    -> Next elapse: Tue 2026-09-01 08:15:00 MDT
+      OnCalendar = "*-*-* 08,20:15:00";
       Persistent = true;
       RandomizedDelaySec = "10m";   # do not hammer the APIs on a fixed schedule
     };

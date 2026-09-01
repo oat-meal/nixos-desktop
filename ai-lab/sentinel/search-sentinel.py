@@ -56,6 +56,11 @@ MIN_RELEVANT_ENGINES = int(os.environ.get("SEARCH_MIN_ENGINES", "2"))
 #: a common word would be matched by filler and the probe would pass vacuously.
 #: Engines listed here must be the ones searxng.nix ENABLES — a probe against a
 #: disabled engine tests nothing and reports a confident zero.
+#:
+#: ⚠️ AN EXPLICIT `engines=X` BYPASSES `disabled` ENTIRELY. Proven on the live
+#: instance: bing is disabled in searxng.nix and still returns 10 results when
+#: named directly. So these per-engine probes measure whether an engine WORKS,
+#: never whether it is REACHABLE by an ordinary query — see DEFAULT_PROBE.
 PROBES = [
     ("crossref", "Nothofagus forest ecology", "nothofagus"),
     ("openalex", "Nothofagus forest ecology", "nothofagus"),
@@ -63,12 +68,38 @@ PROBES = [
     ("wikipedia", "Nothofagus", "nothofagus"),
 ]
 
+#: ⭐ THE PATH CONSUMERS ACTUALLY USE — no `engines=`, no `categories=`, exactly
+#: what Open WebUI and an agent send. This is the check the first version of
+#: this sentinel lacked, and the omission hid a real defect: after the first
+#: deploy every per-engine probe passed while a default query reached only
+#: wikipedia and wikispecies, because crossref and openalex were filed under
+#: `science` and a default query searches `general`.
+#:
+#: A monitor that only tests the paths it knows about will confirm the parts
+#: that work and stay silent about the one the users touch.
+DEFAULT_PROBE = ("Nothofagus", "nothofagus")
+
+#: How many relevant results a bare query must return. Low on purpose: the
+#: assertion is "the default path reaches a working engine at all", not a
+#: quality bar that would flap on a rate limit.
+MIN_DEFAULT_HITS = int(os.environ.get("SEARCH_MIN_DEFAULT_HITS", "1"))
+
 
 def query(engine, q):
-    url = BASE + "?" + urllib.parse.urlencode(
-        {"q": q, "format": "json", "engines": engine})
+    """One search. `engine=None` sends a BARE query — the consumer path."""
+    params = {"q": q, "format": "json"}
+    if engine:
+        params["engines"] = engine
+    url = BASE + "?" + urllib.parse.urlencode(params)
     with urllib.request.urlopen(url, timeout=TIMEOUT) as r:
         return json.load(r)
+
+
+def relevance(results, term):
+    """How many results actually mention the query's own distinctive term."""
+    return sum(1 for x in results
+               if term in (str(x.get("title", "")) + " "
+                           + str(x.get("url", ""))).lower())
 
 
 def main():
@@ -90,9 +121,7 @@ def main():
 
         results = d.get("results", [])
         dead = [x[0] for x in d.get("unresponsive_engines", [])]
-        hits = sum(1 for x in results
-                   if term in (str(x.get("title", "")) + " "
-                               + str(x.get("url", ""))).lower())
+        hits = relevance(results, term)
 
         if hits >= MIN_HITS:
             verdict = "ok"
@@ -126,6 +155,31 @@ def main():
     if len(relevant) < MIN_RELEVANT_ENGINES:
         problems.append(f"only {len(relevant)} of {len(rows)} engine(s) "
                         f"relevant, need {MIN_RELEVANT_ENGINES}")
+
+    # ⭐ THE CONSUMER PATH, checked separately because everything above can pass
+    # while this fails — and did. Skipped when an engine subset was forced, since
+    # that run is a targeted probe rather than a health check.
+    if not only:
+        dq, dterm = DEFAULT_PROBE
+        try:
+            d = query(None, dq)
+            res = d.get("results", [])
+            dead = [x[0] for x in d.get("unresponsive_engines", [])]
+            hits = relevance(res, dterm)
+            engines = sorted({r.get("engine") for r in res if r.get("engine")})
+            print(f"\n  default query {dq!r} (no engines=, no categories= — "
+                  f"what a consumer sends):")
+            print(f"    {len(res)} result(s) from {engines or 'NOTHING'}, "
+                  f"{hits} mentioning {dterm!r}"
+                  + (f"; unresponsive: {','.join(dead)}" if dead else ""))
+            if hits < MIN_DEFAULT_HITS:
+                problems.append(
+                    f"the DEFAULT query path returned {hits} relevant "
+                    f"result(s), need {MIN_DEFAULT_HITS} — per-engine probes "
+                    f"can pass while ordinary queries reach nothing")
+        except (urllib.error.URLError, OSError, ValueError) as e:
+            print(f"\n  default query: UNREACHABLE {type(e).__name__}")
+            problems.append("the DEFAULT query path is unreachable")
 
     if problems:
         msg = "lab-search degraded: " + "; ".join(problems)
